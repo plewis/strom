@@ -8,13 +8,13 @@
 namespace strom
     {
 
-    //class Tree;
+    class Tree;
     //class TreeManip;
     //class Likelihood;
 
     class Node
         {
-            //friend class Tree;
+            friend class Tree;
             //friend class TreeManip;
             //friend class Likelihood;
 
@@ -32,7 +32,7 @@ namespace strom
 
             typedef std::vector<Node>    Vector;
             typedef std::vector<Node *>  PtrVector;
-     
+
         private:
 
             void                clear();
