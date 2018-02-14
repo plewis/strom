@@ -157,6 +157,8 @@ inline void Likelihood::initBeagleLib()
     else
         preferenceFlags |= BEAGLE_FLAG_PROCESSOR_CPU;
 
+    requirementFlags |= BEAGLE_FLAG_SCALING_MANUAL;
+
     BeagleInstanceDetails instance_details;
     _instance = beagleCreateInstance(
          _ntaxa,                    // tips
@@ -167,7 +169,7 @@ inline void Likelihood::initBeagleLib()
          1,                         // models
          num_transition_probs,      // transition matrices
          _model->_num_categ,        // rate categories
-         0,                         // scale buffers
+         num_internals + 1,         // scale buffers
          NULL,                      // resource restrictions
          0,                         // length of resource list
          preferenceFlags,           // preferred flags
@@ -286,7 +288,11 @@ inline void Likelihood::defineOperations(typename Tree::SharedPtr t)
             _operations.push_back(partial);
 
             // 2. destination scaling buffer index to write to
-            _operations.push_back(BEAGLE_OP_NONE);
+            //oldway
+            //_operations.push_back(BEAGLE_OP_NONE);
+            //newway
+            int scaler = nd->_number - _ntaxa + 1;
+            _operations.push_back(scaler);
 
             // 3. destination scaling buffer index to read from
             _operations.push_back(BEAGLE_OP_NONE);
@@ -334,13 +340,17 @@ inline void Likelihood::updateTransitionMatrices()
 
 inline void Likelihood::calculatePartials()
     {
+    int code = beagleResetScaleFactors(_instance, 0);
+    if (code != 0)
+        throw XStrom(boost::str(boost::format("failed to reset scale factors in calculatePartials. BeagleLib error code was %d (%s)") % code % _beagle_error[code]));
+
     // Calculate or queue for calculation partials using a list of operations
     int totalOperations = (int)(_operations.size()/7);
-    int code = beagleUpdatePartials(
+    code = beagleUpdatePartials(
         _instance,                              // Instance number
         (BeagleOperation *) &_operations[0],    // BeagleOperation list specifying operations
         totalOperations,                        // Number of operations
-        BEAGLE_OP_NONE);                        // Index number of scaleBuffer to store accumulated factors
+        0);                                     // Index number of scaleBuffer to store accumulated factors
 
     if (code != 0)
         throw XStrom(boost::str(boost::format("failed to update partials. BeagleLib error code was %d (%s)") % code % _beagle_error[code]));
@@ -373,7 +383,7 @@ inline double Likelihood::calcLogLikelihood(typename Tree::SharedPtr t)
     // state frequencies to return the log likelihood and first and second derivative sums
     int stateFrequencyIndex  = 0;
     int categoryWeightsIndex = 0;
-    int cumulativeScalingIndex = BEAGLE_OP_NONE;
+    int cumulativeScalingIndex = 0;
     double log_likelihood = 0.0;
 
     // index_focal_child is the root node
