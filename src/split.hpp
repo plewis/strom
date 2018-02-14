@@ -4,7 +4,7 @@
 #include <memory>
 #include <set>
 #include <map>
-#include <limits>
+#include <climits>
 #include <cassert>
 
 namespace strom
