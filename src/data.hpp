@@ -49,12 +49,12 @@ class Data
 
 inline Data::Data()
     {
-    std::cout << "Creating Data object" << std::endl;
+    //std::cout << "Creating Data object" << std::endl;
     }
 
 inline Data::~Data()
     {
-    std::cout << "Destroying Data object" << std::endl;
+    //std::cout << "Destroying Data object" << std::endl;
     }
 
 inline const Data::pattern_counts_t & Data::getPatternCounts() const

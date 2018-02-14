@@ -1,2 +1,2 @@
 SUBDIRS = src
-dist_doc_DATA = rbcL.nex
+dist_doc_DATA = rbcL.nex trees.t
