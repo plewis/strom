@@ -10,13 +10,13 @@ namespace strom
 
     class Tree;
     class TreeManip;
-    //class Likelihood;
+    class Likelihood;
 
     class Node
         {
             friend class Tree;
             friend class TreeManip;
-            //friend class Likelihood;
+            friend class Likelihood;
 
         public:
                                         Node();
