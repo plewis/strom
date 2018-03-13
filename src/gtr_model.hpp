@@ -23,6 +23,14 @@ namespace strom
 
             std::string                 describeModel() const;
 
+            double                      getGammaShape() const {return _gamma_shape;}
+            unsigned                    getGammaNCateg() const {return _num_categ;}
+            std::vector<double>         getExchangeabilities() const {return _exchangeabilities;}
+            std::vector<double>         getStateFreqs() const {return _state_freqs;}
+            std::vector<double>         getDiscreteGammaRelRates() const {return _relative_rates;}
+            std::vector<double>         getDiscreteGammaCategBoundaries() const {return _categ_boundaries;}
+            std::vector<double>         getDiscreteGammaRateProbs() const {return _rate_probs;}
+
             void                        setGammaShape(double shape);
             void                        setGammaNCateg(unsigned ncateg);
             void                        setExchangeabilities(const std::vector<double> & exchangeabilities);

@@ -62,7 +62,7 @@ inline TreeManip::TreeManip(Tree::SharedPtr t)
 
 inline TreeManip::~TreeManip()
     {
-    std::cerr << "Destroying a TreeManip" << std::endl;
+    //std::cerr << "Destroying a TreeManip" << std::endl;
     }
 
 inline void TreeManip::clear()

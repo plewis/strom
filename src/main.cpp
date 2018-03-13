@@ -1,4 +1,4 @@
-#if 1
+#if 0
 
 #include <iostream>
 #include "lot.hpp"
@@ -62,5 +62,6 @@ int main(int argc, const char * argv[])
 
     return 0;
     }
+
 
 #endif

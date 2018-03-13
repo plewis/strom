@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include "chain.hpp"
 #include "tree_summary.hpp"
 #include "likelihood.hpp"
 #include <boost/program_options.hpp>
@@ -27,6 +28,10 @@ class Strom
         std::vector<double> _state_frequencies;
         std::vector<double> _exchangeabilities;
 
+        unsigned            _random_seed;
+        unsigned            _num_iter;
+        unsigned            _sample_freq;
+
         static std::string  _program_name;
         static unsigned     _major_version;
         static unsigned     _minor_version;
@@ -50,6 +55,9 @@ inline void Strom::processCommandLineOptions(int argc, const char * argv[])
     desc.add_options()
         ("help,h", "produce help message")
         ("version,v", "show program version")
+        ("seed,z",      boost::program_options::value(&_random_seed)->default_value(1),   "pseudorandom number seed")
+        ("niter,n",     boost::program_options::value(&_num_iter)->default_value(1000),   "number of MCMC iterations")
+        ("samplefreq",  boost::program_options::value(&_sample_freq)->default_value(1),   "skip this many iterations before sampling next")
         ("datafile,d",  boost::program_options::value(&_data_file_name)->required(), "name of data file in NEXUS format")
         ("treefile,t",  boost::program_options::value(&_tree_file_name)->required(), "name of data file in NEXUS format")
         ("expectedLnL", boost::program_options::value(&_expected_log_likelihood)->default_value(0.0), "log likelihood expected")
@@ -138,16 +146,31 @@ inline void Strom::run()
         TreeSummary::SharedPtr tree_summary(new TreeSummary());
         tree_summary->readTreefile(_tree_file_name, 0);
         Tree::SharedPtr tree = tree_summary->getTree(0);
+        //std::string newick = tree_summary->getNewick(0);
+        TreeManip::SharedPtr tm = TreeManip::SharedPtr(new TreeManip(tree));
 
         // Calculate the log-likelihood for the tree
         double lnL = likelihood->calcLogLikelihood(tree);
         std::cout << boost::str(boost::format("log likelihood = %.5f") % lnL) << std::endl;
-
-        // old way
-        //std::cout << "      (expecting -274.59466)" << std::endl;
-
-        // new way
         std::cout << boost::str(boost::format("      (expecting %.5f)") % _expected_log_likelihood) << std::endl;
+
+        // Create a Lot object that generates (pseudo)random numbers
+        Lot::SharedPtr lot = Lot::SharedPtr(new Lot);
+        lot->setSeed(_random_seed);
+
+        // Create a Chain object and take _num_iter steps
+        Chain chain;
+        chain.setLot(lot);
+        chain.setLikelihood(likelihood);
+        chain.setTreeManip(tm);
+        chain.start();
+        for (unsigned iteration = 1; iteration < _num_iter; ++iteration)
+            {
+            chain.nextStep(iteration, _sample_freq);
+            }
+        chain.stop();
+
+        std::cerr << "chain._tmp*_sample_freq/_num_iter = " << (chain._tmp*_sample_freq/_num_iter) << std::endl;
         }
     catch (XStrom x)
         {
