@@ -155,24 +155,24 @@ inline void Chain::start()
     {
     _shape_updater->pullCurrentStateFromModel();
     _log_likelihood = calcLogLikelihood();
-    if (_heating_power == 1.0)
-        {
-        std::cout << boost::str(boost::format("%12s %12s %12s %12s %12s")
-            % "iteration"
-            % "lnLike"
-            % "lnPrior"
-            % "shape"
-            % "accept"
-            ) << std::endl;
-
-        double log_prior = calcLogJointPrior();
-        std::cout << boost::str(boost::format("%12d %12.5f %12.5f %12.5f %12s")
-                % 0
-                % _log_likelihood
-                % log_prior
-                % _shape_updater->getCurrentPoint()
-                % "---") << std::endl;
-        }
+    //     if (_heating_power == 1.0)
+    //         {
+    //         std::cout << boost::str(boost::format("%12s %12s %12s %12s %12s")
+    //             % "iteration"
+    //             % "lnLike"
+    //             % "lnPrior"
+    //             % "shape"
+    //             % "accept"
+    //             ) << std::endl;
+    //
+    //         double log_prior = calcLogJointPrior();
+    //         std::cout << boost::str(boost::format("%12d %12.5f %12.5f %12.5f %12s")
+    //                 % 0
+    //                 % _log_likelihood
+    //                 % log_prior
+    //                 % _shape_updater->getCurrentPoint()
+    //                 % "---") << std::endl;
+    //         }
     }
 
 inline void Chain::stop()
@@ -196,21 +196,21 @@ inline void Chain::nextStep(int iteration, unsigned sampling_freq)
     GTRModel::SharedPtr gtr = _likelihood->getModel();
     if (gtr->getGammaNCateg() > 1)
         _log_likelihood = _shape_updater->update(_log_likelihood);
-    double log_prior = calcLogJointPrior();
-    if (_heating_power == 1.0)
-        {
-        if (sampling_freq > 0 && iteration % sampling_freq == 0)
-            {
-            if (iteration > 0)
-                _tmp += _shape_updater->getCurrentPoint();
-            std::cout << boost::str(boost::format("%12d %12.5f %12.5f %12.5f %12.1f")
-                    % iteration
-                    % _log_likelihood
-                    % log_prior
-                    % _shape_updater->getCurrentPoint()
-                    % _shape_updater->getAcceptPct()) << std::endl;
-            }
-        }
+    //     double log_prior = calcLogJointPrior();
+    //     if (_heating_power == 1.0)
+    //         {
+    //         if (sampling_freq > 0 && iteration % sampling_freq == 0)
+    //             {
+    //             if (iteration > 0)
+    //                 _tmp += _shape_updater->getCurrentPoint();
+    //             std::cout << boost::str(boost::format("%12d %12.5f %12.5f %12.5f %12.1f")
+    //                     % iteration
+    //                     % _log_likelihood
+    //                     % log_prior
+    //                     % _shape_updater->getCurrentPoint()
+    //                     % _shape_updater->getAcceptPct()) << std::endl;
+    //             }
+    //         }
     }
 
 }

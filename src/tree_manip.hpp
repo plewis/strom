@@ -24,6 +24,7 @@ namespace strom
             void                        buildFromNewick(const std::string newick, bool rooted, bool allow_polytomies);
             void                        storeSplits(std::set<Split> & splitset);
             void                        rerootAt(int node_index);
+            double                      calcTreeLength() const;
 
             void                        setTree(Tree::SharedPtr t);
             Tree::SharedPtr             getTree();
@@ -855,6 +856,16 @@ inline void TreeManip::storeSplits(std::set<Split> & splitset)
             nd->_parent->_split.addSplit(nd->_split);
             }
         }
+    }
+
+inline double TreeManip::calcTreeLength() const
+    {
+    double TL = 0.0;
+    for (auto nd : _tree->_preorder)
+        {
+        TL += nd->_edge_length;
+        }
+    return TL;
     }
 
 }

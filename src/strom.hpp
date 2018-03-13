@@ -4,6 +4,7 @@
 #include "chain.hpp"
 #include "tree_summary.hpp"
 #include "likelihood.hpp"
+#include "output_manager.hpp"
 #include <boost/program_options.hpp>
 
 namespace strom {
@@ -11,30 +12,33 @@ namespace strom {
 class Strom
     {
     public:
-                            Strom();
-                            ~Strom();
+                                    Strom();
+                                    ~Strom();
 
-        void                processCommandLineOptions(int argc, const char * argv[]);
-        void                run();
+        void                        processCommandLineOptions(int argc, const char * argv[]);
+        void                        run();
+        void                        sample(unsigned iter, Chain::SharedPtr chain, TreeManip::SharedPtr tm, GTRModel::SharedPtr gtr);
 
     private:
 
-        std::string         _data_file_name;
-        std::string         _tree_file_name;
+        OutputManager::SharedPtr    _output_manager;
 
-        double              _expected_log_likelihood;
-        double              _gamma_shape;
-        unsigned            _num_categ;
-        std::vector<double> _state_frequencies;
-        std::vector<double> _exchangeabilities;
+        std::string                 _data_file_name;
+        std::string                 _tree_file_name;
 
-        unsigned            _random_seed;
-        unsigned            _num_iter;
-        unsigned            _sample_freq;
+        double                      _expected_log_likelihood;
+        double                      _gamma_shape;
+        unsigned                    _num_categ;
+        std::vector<double>         _state_frequencies;
+        std::vector<double>         _exchangeabilities;
 
-        static std::string  _program_name;
-        static unsigned     _major_version;
-        static unsigned     _minor_version;
+        unsigned                    _random_seed;
+        unsigned                    _num_iter;
+        unsigned                    _sample_freq;
+
+        static std::string          _program_name;
+        static unsigned             _major_version;
+        static unsigned             _minor_version;
 
     };
 
@@ -110,6 +114,19 @@ inline void Strom::processCommandLineOptions(int argc, const char * argv[])
         throw XStrom("ncateg must be a positive integer greater than 0");
     }
 
+inline void Strom::sample(unsigned iteration, Chain::SharedPtr chain, TreeManip::SharedPtr tm, GTRModel::SharedPtr gtr)
+    {
+    if (iteration % _sample_freq == 0)
+        {
+        double logLike = chain->calcLogLikelihood();
+        double logPrior = chain->calcLogJointPrior();
+        double TL = tm->calcTreeLength();
+        _output_manager->outputConsole(boost::str(boost::format("%12d %12.5f %12.5f") % iteration % logLike % logPrior));
+        _output_manager->outputTree(iteration, tm);
+        _output_manager->outputParameters(iteration, logLike, logPrior, TL, gtr);
+        }
+    }
+
 inline void Strom::run()
     {
     std::cout << "Starting..." << std::endl;
@@ -158,19 +175,31 @@ inline void Strom::run()
         Lot::SharedPtr lot = Lot::SharedPtr(new Lot);
         lot->setSeed(_random_seed);
 
-        // Create a Chain object and take _num_iter steps
-        Chain chain;
-        chain.setLot(lot);
-        chain.setLikelihood(likelihood);
-        chain.setTreeManip(tm);
-        chain.start();
-        for (unsigned iteration = 1; iteration < _num_iter; ++iteration)
-            {
-            chain.nextStep(iteration, _sample_freq);
-            }
-        chain.stop();
+        // Create an output manager and open output files
+        _output_manager.reset(new OutputManager);
+        _output_manager->outputConsole(boost::str(boost::format("%12s %12s %12s") % "iteration" % "logLike" % "logPrior"));
+        _output_manager->openTreeFile("trees.tre", d);
+        _output_manager->openParameterFile("params.txt", likelihood->getModel());
 
-        std::cerr << "chain._tmp*_sample_freq/_num_iter = " << (chain._tmp*_sample_freq/_num_iter) << std::endl;
+        // Create a Chain object and take _num_iter steps
+        Chain::SharedPtr chain = Chain::SharedPtr(new Chain);
+        chain->setLot(lot);
+        chain->setLikelihood(likelihood);
+        chain->setTreeManip(tm);
+        chain->start();
+        sample(0, chain, tm, gtr);
+        for (unsigned iteration = 1; iteration <= _num_iter; ++iteration)
+            {
+            chain->nextStep(iteration, _sample_freq);
+            sample(iteration, chain, tm, gtr);
+            }
+        chain->stop();
+
+        // Close output files
+        _output_manager->closeTreeFile();
+        _output_manager->closeParameterFile();
+
+        std::cerr << "chain._tmp*_sample_freq/_num_iter = " << (chain->_tmp*_sample_freq/_num_iter) << std::endl;
         }
     catch (XStrom x)
         {

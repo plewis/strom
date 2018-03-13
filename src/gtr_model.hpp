@@ -42,6 +42,9 @@ namespace strom
             int                         setBeagleAmongSiteRateVariationRates(int beagle_instance);
             int                         setBeagleAmongSiteRateVariationProbs(int beagle_instance);
 
+            std::string                 paramNamesAsString(std::string sep) const;
+            std::string                 paramValuesAsString(std::string sep) const;
+
                                         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
             typedef boost::shared_ptr< GTRModel > SharedPtr;
@@ -302,6 +305,20 @@ inline int GTRModel::setBeagleAmongSiteRateVariationProbs(int beagle_instance)
         &_rate_probs[0]);
 
     return code;
+    }
+
+inline std::string GTRModel::paramNamesAsString(std::string sep) const
+    {
+    std::string s = "";
+    s += "r(A<->C)" + sep + "r(A<->G)" + sep + "r(A<->T)" + sep + "r(C<->G)" + sep + "r(C<->T)" + sep + "r(G<->T)" + sep;
+    s += "	pi(A)" + sep + "pi(C)" + sep + "pi(G)" + sep + "pi(T)" + sep;
+    s += "alpha";
+    return s;
+    }
+
+inline std::string GTRModel::paramValuesAsString(std::string sep) const
+    {
+    return boost::str(boost::format("%.5f%s%.5f%s%.5f%s%.5f%s%.5f%s%.5f%s%.5f%s%.5f%s%.5f%s%.5f%s%.5f") % _exchangeabilities[0] % sep % _exchangeabilities[1] % sep % _exchangeabilities[2] % sep % _exchangeabilities[3] % sep % _exchangeabilities[4] % sep % _exchangeabilities[5] % sep % _state_freqs[0] % sep % _state_freqs[1] % sep % _state_freqs[2] % sep % _state_freqs[3] % sep % _gamma_shape);
     }
 
 }
