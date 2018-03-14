@@ -98,9 +98,6 @@ inline void DirichletUpdater::proposeNewState()
         _curr_point[i] /= sum_gamma_deviates;
         }
 
-    // Push _curr_point to the model
-    pushCurrentStateToModel();
-
     // Determine probability density of the forward proposal
     double log_forward_density = 0.0;
     for (unsigned i = 0; i < dim; ++i)

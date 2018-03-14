@@ -164,12 +164,12 @@ inline void Chain::clear()
     _shape_updater->setPriorParameters(std::vector<double>(2, 1.0));
 
     _statefreq_updater.reset(new StateFreqUpdater);
-    _statefreq_updater->setLambda(1.0);
+    _statefreq_updater->setLambda(0.001);
     _statefreq_updater->setTargetAcceptanceRate(0.3);
     _statefreq_updater->setPriorParameters(std::vector<double>(4, 1.0));
 
     _exchangeability_updater.reset(new ExchangeabilityUpdater);
-    _exchangeability_updater->setLambda(1.0);
+    _exchangeability_updater->setLambda(0.001);
     _exchangeability_updater->setTargetAcceptanceRate(0.3);
     _exchangeability_updater->setPriorParameters(std::vector<double>(6, 1.0));
 
