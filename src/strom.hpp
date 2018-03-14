@@ -44,12 +44,12 @@ class Strom
 
 inline Strom::Strom()
     {
-    std::cout << "Constructing a Strom" << std::endl;
+    //std::cout << "Constructing a Strom" << std::endl;
     }
 
 inline Strom::~Strom()
     {
-    std::cout << "Destroying a Strom" << std::endl;
+    //std::cout << "Destroying a Strom" << std::endl;
     }
 
 inline void Strom::processCommandLineOptions(int argc, const char * argv[])
@@ -169,7 +169,8 @@ inline void Strom::run()
         // Calculate the log-likelihood for the tree
         double lnL = likelihood->calcLogLikelihood(tree);
         std::cout << boost::str(boost::format("log likelihood = %.5f") % lnL) << std::endl;
-        std::cout << boost::str(boost::format("      (expecting %.5f)") % _expected_log_likelihood) << std::endl;
+        if (_expected_log_likelihood != 0.0)
+            std::cout << boost::str(boost::format("      (expecting %.5f)") % _expected_log_likelihood) << std::endl;
 
         // Create a Lot object that generates (pseudo)random numbers
         Lot::SharedPtr lot = Lot::SharedPtr(new Lot);
@@ -177,7 +178,7 @@ inline void Strom::run()
 
         // Create an output manager and open output files
         _output_manager.reset(new OutputManager);
-        _output_manager->outputConsole(boost::str(boost::format("%12s %12s %12s") % "iteration" % "logLike" % "logPrior"));
+        _output_manager->outputConsole(boost::str(boost::format("\n%12s %12s %12s") % "iteration" % "logLike" % "logPrior"));
         _output_manager->openTreeFile("trees.tre", d);
         _output_manager->openParameterFile("params.txt", likelihood->getModel());
 
@@ -198,8 +199,6 @@ inline void Strom::run()
         // Close output files
         _output_manager->closeTreeFile();
         _output_manager->closeParameterFile();
-
-        std::cerr << "chain._tmp*_sample_freq/_num_iter = " << (chain->_tmp*_sample_freq/_num_iter) << std::endl;
         }
     catch (XStrom x)
         {
