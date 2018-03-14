@@ -30,6 +30,8 @@ namespace strom
                     double              getEdgeLength() {return _edge_length;}
                     Split               getSplit()      {return _split;}
 
+                    void                setEdgeLength(double v) {_edge_length = v;}
+
             typedef std::vector<Node>    Vector;
             typedef std::vector<Node *>  PtrVector;
 

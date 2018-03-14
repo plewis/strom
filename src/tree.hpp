@@ -21,6 +21,10 @@ namespace strom
                                         Tree();
                                         ~Tree();
 
+            bool                        isRooted() const {return _is_rooted;}
+            unsigned                    numLeaves() const {return _nleaves;}
+            unsigned                    numNodes() const {return (unsigned)_nodes.size();}
+
         private:
 
             void                        clear();

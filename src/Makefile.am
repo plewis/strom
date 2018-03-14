@@ -10,7 +10,12 @@ strom_SOURCES = main.cpp \
                 lot.hpp \
                 likelihood.hpp \
                 tree_summary.hpp \
+                updater.hpp \
                 gamma_shape_updater.hpp \
+                dirichlet_updater.hpp \
+                statefreq_updater.hpp \
+                exchangeability_updater.hpp \
+                tree_updater.hpp \
                 chain.hpp \
                 output_manager.hpp \
                 xstrom.hpp
