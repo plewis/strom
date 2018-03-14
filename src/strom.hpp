@@ -17,9 +17,9 @@ class Strom
 
         void                        processCommandLineOptions(int argc, const char * argv[]);
         void                        run();
-        void                        sample(unsigned iter, Chain::SharedPtr chain, TreeManip::SharedPtr tm, GTRModel::SharedPtr gtr);
 
     private:
+        void                        sample(unsigned iter, Chain::SharedPtr chain, TreeManip::SharedPtr tm, GTRModel::SharedPtr gtr);
 
         OutputManager::SharedPtr    _output_manager;
 
