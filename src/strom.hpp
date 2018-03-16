@@ -20,11 +20,11 @@ class Strom
 
     private:
         void                        clear();//POLWARN
-        void                        sample(unsigned iter, Chain::SharedPtr chain, TreeManip::SharedPtr tm, GTRModel::SharedPtr gtr);
+        void                        sample(unsigned iter, Chain & chain);//POLNEW
 
         //POLNEW added code
         void                        calcHeatingPowers();
-        void                        initChains(OutputManager::SharedPtr outmgr, std::string & newick);
+        void                        initChains(std::string & newick);
         void                        stopTuningChains();
         void                        stepChains(unsigned iteration, bool sampling);
         void                        swapChains();
@@ -179,16 +179,16 @@ inline void Strom::processCommandLineOptions(int argc, const char * argv[])
         throw XStrom("heatfactor must be a real number in the interval (0.0,1.0]");
     }
 
-inline void Strom::sample(unsigned iteration, Chain::SharedPtr chain, TreeManip::SharedPtr tm, GTRModel::SharedPtr gtr)
+inline void Strom::sample(unsigned iteration, Chain & chain) //POLNEW
     {
-    if (iteration % _sample_freq == 0)
+    if (chain.getHeatingPower() == 1 && iteration % _sample_freq == 0)
         {
-        double logLike = chain->calcLogLikelihood();
-        double logPrior = chain->calcLogJointPrior();
-        double TL = tm->calcTreeLength();
+        double logLike = chain.calcLogLikelihood(); //POLNEW
+        double logPrior = chain.calcLogJointPrior(); //POLNEW
+        double TL = chain.getTreeManip()->calcTreeLength(); //POLNEW
         _output_manager->outputConsole(boost::str(boost::format("%12d %12.5f %12.5f") % iteration % logLike % logPrior));
-        _output_manager->outputTree(iteration, tm);
-        _output_manager->outputParameters(iteration, logLike, logPrior, TL, gtr);
+        _output_manager->outputTree(iteration, chain.getTreeManip());//POLNEW
+        _output_manager->outputParameters(iteration, logLike, logPrior, TL, _gtr);//POLNEW
         }
     }
 
@@ -207,13 +207,11 @@ inline void Strom::calcHeatingPowers()
         }
     }
 
-inline void Strom::initChains(OutputManager::SharedPtr outmgr, std::string & newick)
+inline void Strom::initChains(std::string & newick)
     {
-    int chain_index = 0;
+    unsigned chain_index = 0;
     for (auto & c : _chains)
         {
-        c.setOutputManager(outmgr);
-
         // Give the chain a starting tree
         c.setTreeFromNewick(newick);
 
@@ -227,24 +225,35 @@ inline void Strom::initChains(OutputManager::SharedPtr outmgr, std::string & new
         c.startTuning();
 
         // Set heating power to precalculated value
-        c.setHeatingPower(_heating_powers[chain_index++]);
+        c.setChainIndex(chain_index);
+        c.setHeatingPower(_heating_powers[chain_index]);
 
         // Print headers in output files and make sure each updator has its starting value
         c.start();
+
+        sample(0, c); //POLNEW
+
+        ++chain_index;
         }
     }
 
 inline void Strom::showLambdas() const
     {
-    for (auto & c : _chains)
+    for (unsigned idx = 0; idx < _num_chains; ++idx)
         {
-        _output_manager->outputConsole(boost::str(boost::format("Chain with power %.5f") % c.getHeatingPower()));
-        std::vector<std::string> names = c.getLambdaNames();
-        std::vector<double> lambdas    = c.getLambdas();
-        unsigned n = (unsigned)names.size();
-        for (unsigned i = 0; i < n; ++i)
+        for (auto & c : _chains)
             {
-            _output_manager->outputConsole(boost::str(boost::format("%30s %12.8f") % names[i] % lambdas[i]));
+            if (c.getChainIndex() == idx)
+                {
+                _output_manager->outputConsole(boost::str(boost::format("Chain %d (power %.5f)") % idx % c.getHeatingPower()));
+                std::vector<std::string> names = c.getLambdaNames();
+                std::vector<double> lambdas    = c.getLambdas();
+                unsigned n = (unsigned)names.size();
+                for (unsigned i = 0; i < n; ++i)
+                    {
+                    _output_manager->outputConsole(boost::str(boost::format("%30s %12.8f") % names[i] % lambdas[i]));
+                    }
+                }
             }
         }
     }
@@ -261,9 +270,14 @@ inline void Strom::stopTuningChains()
 inline void Strom::stepChains(unsigned iteration, bool sampling)
     {
     for (auto & c : _chains)
-        c.nextStep(iteration, (sampling ? _sample_freq : 0));
+        {
+        c.nextStep(iteration); //POLNEW
+        if (sampling)//POLNEW
+            sample(iteration, c);//POLNEW
+        }
     }
 
+//POLNEW
 inline void Strom::swapChains()
     {
     if (_num_chains == 1)
@@ -302,12 +316,19 @@ inline void Strom::swapChains()
     assert(i != j && i >=0 && i < _num_chains && j >= 0 && j < _num_chains);
 
     // Determine upper and lower triangle cells in _swaps vector
-    unsigned smaller = i;
-    unsigned larger  = j;
-    if (j < i)
+    unsigned smaller = _num_chains;
+    unsigned larger  = _num_chains;
+    double index_i   = _chains[i].getChainIndex();
+    double index_j   = _chains[j].getChainIndex();
+    if (index_i < index_j)
         {
-        smaller = j;
-        larger  = i;
+        smaller = index_i;
+        larger  = index_j;
+        }
+    else
+        {
+        smaller = index_j;
+        larger  = index_i;
         }
     unsigned upper = smaller*_num_chains + larger;
     unsigned lower = larger*_num_chains  + smaller;
@@ -338,6 +359,8 @@ inline void Strom::swapChains()
         _swaps[lower]++;
         _chains[j].setHeatingPower(heat_i);
         _chains[i].setHeatingPower(heat_j);
+        _chains[j].setChainIndex(index_i);
+        _chains[i].setChainIndex(index_j);
         std::vector<double> lambdas_i = _chains[i].getLambdas();
         std::vector<double> lambdas_j = _chains[j].getLambdas();
         _chains[i].setLambdas(lambdas_j);
@@ -462,7 +485,7 @@ inline void Strom::run()
         calcHeatingPowers();
 
         //POLNEW added code
-        initChains(_output_manager, newick);
+        initChains(newick);
 
         //POLNEW deleted code
         // Create a Chain object and take _num_iter steps
@@ -505,16 +528,16 @@ inline void Strom::run()
         // Create swap summary
         swapSummary();
 
+        // Close output files
+        _output_manager->closeTreeFile();
+        _output_manager->closeParameterFile();
+
         //POLNEW added code
         // Create tree summaries
         std::cout << "\nSummary of \"trees.tre\":" << std::endl;
         tree_summary->clear();
         tree_summary->readTreefile("trees.tre", 1);
         tree_summary->showSummary();
-
-        // Close output files
-        _output_manager->closeTreeFile();
-        _output_manager->closeParameterFile();
         }
     catch (XStrom & x)  //POLWARN
         {

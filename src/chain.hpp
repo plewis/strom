@@ -33,17 +33,19 @@ namespace strom
 
             void                                    start();
             void                                    stop();
-            void                                    nextStep(int iteration, unsigned sampling_freq);
+            void                                    nextStep(int iteration); //POLNEW
 
-            void                                    setOutputManager(OutputManager::SharedPtr outmgr);//POLNEW
             void                                    setTreeFromNewick(std::string & newick);    //POLNEW
             void                                    setTreeManip(TreeManip::SharedPtr tm);
             void                                    setLikelihood(typename Likelihood::SharedPtr likelihood);
             void                                    setLot(typename Lot::SharedPtr lot);
-            void                                    setSliceLambda(double slicelambda);
+            TreeManip::SharedPtr                    getTreeManip() {return _tree_manipulator;} //POLNEW
 
             void                                    setHeatingPower(double p);
-            double                                  getHeatingPower() const;
+            double                                  getHeatingPower() const {return _heating_power;}
+
+            void                                    setChainIndex(unsigned idx) {_chain_index = idx;}
+            double                                  getChainIndex() const {return _chain_index;}
 
             std::vector<std::string>                getLambdaNames() const;
             std::vector<double>                     getLambdas() const;
@@ -64,11 +66,9 @@ namespace strom
             ExchangeabilityUpdater::SharedPtr   _exchangeability_updater;
             TreeUpdater::SharedPtr              _tree_updater;
 
+            unsigned                            _chain_index;
             double                              _heating_power;
             double                              _log_likelihood;
-            int                                 _iter;
-
-            OutputManager::SharedPtr            _output_manager;    //POLNEW
         };
 
 inline Chain::Chain()
@@ -89,11 +89,6 @@ inline void Chain::setHeatingPower(double p)
     _statefreq_updater->setHeatingPower(p);
     _exchangeability_updater->setHeatingPower(p);
     _tree_updater->setHeatingPower(p);
-    }
-
-inline double Chain::getHeatingPower() const
-    {
-    return _heating_power;
     }
 
 //TODO shouldn't this just be the updater names?
@@ -140,12 +135,6 @@ inline void Chain::stopTuning()
     _statefreq_updater->setTuning(false);
     _exchangeability_updater->setTuning(false);
     _tree_updater->setTuning(false);
-    }
-
-//POLNEW
-inline void Chain::setOutputManager(OutputManager::SharedPtr outmgr)
-    {
-    _output_manager = outmgr;
     }
 
 //POLNEW
@@ -214,6 +203,7 @@ inline void Chain::clear()
     _tree_updater->setTargetAcceptanceRate(0.3);
     _tree_updater->setPriorParameters(std::vector<double>(1, 10.0));
 
+    _chain_index = 0;
     setHeatingPower(1.0);
     startTuning();
     }
@@ -246,7 +236,7 @@ inline double Chain::calcLogJointPrior() const
     return lnP;
     }
 
-inline void Chain::nextStep(int iteration, unsigned sampling_freq)
+inline void Chain::nextStep(int iteration) //POLNEW
     {
     GTRModel::SharedPtr gtr = _likelihood->getModel();
     if (gtr->getGammaNCateg() > 1)

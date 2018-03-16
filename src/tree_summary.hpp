@@ -163,9 +163,11 @@ inline void TreeSummary::showSummary() const
         unsigned topology = ++t;
         unsigned ntrees = (unsigned)key_value_pair.second.size();
         sorted.push_back(std::pair<unsigned, unsigned>(ntrees,topology));
+#if 0
         std::cout << "Topology " << topology << " seen in these " << ntrees << " trees:" << std::endl << "  ";
         std::copy(key_value_pair.second.begin(), key_value_pair.second.end(), std::ostream_iterator<unsigned>(std::cout, " "));
         std::cout << std::endl;
+#endif
         }
 
     // Show sorted histogram data

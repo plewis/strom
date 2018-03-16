@@ -45,7 +45,6 @@ namespace strom
             Node *                              _b;
             Node *                              _c;
             Node *                              _d;
-            double                              _smallest_edge_length;
 
         public:
             typedef std::shared_ptr< TreeUpdater > SharedPtr;
@@ -179,10 +178,10 @@ inline void TreeUpdater::proposeNewState()
     double new_focal_path_length = _new_edgelen_top + _new_edgelen_middle + _new_edgelen_bottom;
     double u = _lot->uniform();
     double new_attachment_point = u*new_focal_path_length;
-    if (new_attachment_point <= _smallest_edge_length)
-        new_attachment_point = _smallest_edge_length;
-    else if (new_focal_path_length - new_attachment_point <= _smallest_edge_length)
-        new_attachment_point = new_focal_path_length - _smallest_edge_length;
+    if (new_attachment_point <= Node::_smallest_edge_length)
+        new_attachment_point = Node::_smallest_edge_length;
+    else if (new_focal_path_length - new_attachment_point <= Node::_smallest_edge_length)
+        new_attachment_point = new_focal_path_length - Node::_smallest_edge_length;
 
     // Decide which node to move, and whether the move involves a topology change
     u = _lot->uniform();
@@ -447,11 +446,11 @@ inline void TreeUpdater::proposeNewState()
             }
         }
 
-    assert(_a->getEdgeLength() >= _smallest_edge_length);
-    assert(_b->getEdgeLength() >= _smallest_edge_length);
-    assert(_d->getEdgeLength() >= _smallest_edge_length);
-    assert(_x->getEdgeLength() >= _smallest_edge_length);
-    assert(_y->getEdgeLength() >= _smallest_edge_length);
+    assert(_a->getEdgeLength() >= Node::_smallest_edge_length);
+    assert(_b->getEdgeLength() >= Node::_smallest_edge_length);
+    assert(_d->getEdgeLength() >= Node::_smallest_edge_length);
+    assert(_x->getEdgeLength() >= Node::_smallest_edge_length);
+    assert(_y->getEdgeLength() >= Node::_smallest_edge_length);
     }
 
 inline void TreeUpdater::revert()

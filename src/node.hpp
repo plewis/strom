@@ -32,6 +32,7 @@ namespace strom
 
                     void                setEdgeLength(double v) {_edge_length = v;}
 
+            static const double          _smallest_edge_length; //POLNEW
             typedef std::vector<Node>    Vector;
             typedef std::vector<Node *>  PtrVector;
 
