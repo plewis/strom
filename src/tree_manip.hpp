@@ -822,7 +822,7 @@ inline void TreeManip::buildFromNewick(const std::string newick, bool rooted, bo
 
         refreshPreorder();
         }
-    catch(XStrom x)
+    catch(XStrom & x) //POLWARN
         {
         clear();
         throw x;

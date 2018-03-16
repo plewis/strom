@@ -11,6 +11,7 @@
 #include "statefreq_updater.hpp"
 #include "exchangeability_updater.hpp"
 #include "tree_updater.hpp"
+#include "output_manager.hpp" //POLNEW
 
 namespace strom
     {
@@ -34,6 +35,8 @@ namespace strom
             void                                    stop();
             void                                    nextStep(int iteration, unsigned sampling_freq);
 
+            void                                    setOutputManager(OutputManager::SharedPtr outmgr);//POLNEW
+            void                                    setTreeFromNewick(std::string & newick);    //POLNEW
             void                                    setTreeManip(TreeManip::SharedPtr tm);
             void                                    setLikelihood(typename Likelihood::SharedPtr likelihood);
             void                                    setLot(typename Lot::SharedPtr lot);
@@ -65,6 +68,7 @@ namespace strom
             double                              _log_likelihood;
             int                                 _iter;
 
+            OutputManager::SharedPtr            _output_manager;    //POLNEW
         };
 
 inline Chain::Chain()
@@ -136,6 +140,25 @@ inline void Chain::stopTuning()
     _statefreq_updater->setTuning(false);
     _exchangeability_updater->setTuning(false);
     _tree_updater->setTuning(false);
+    }
+
+//POLNEW
+inline void Chain::setOutputManager(OutputManager::SharedPtr outmgr)
+    {
+    _output_manager = outmgr;
+    }
+
+//POLNEW
+inline void Chain::setTreeFromNewick(std::string & newick)
+    {
+    if (!_tree_manipulator)
+        _tree_manipulator.reset(new TreeManip);
+    _tree_manipulator->buildFromNewick(newick, false, false);
+
+    _shape_updater->setTreeManip(_tree_manipulator);
+    _statefreq_updater->setTreeManip(_tree_manipulator);
+    _exchangeability_updater->setTreeManip(_tree_manipulator);
+    _tree_updater->setTreeManip(_tree_manipulator);
     }
 
 inline void Chain::setTreeManip(TreeManip::SharedPtr tm)

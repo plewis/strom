@@ -14,7 +14,7 @@ namespace strom
         public:
 
                                                 TreeUpdater();
-                                                ~TreeUpdater();
+            virtual                             ~TreeUpdater(); //POLWARN
 
             virtual double                      calcLogPrior() const;
             double                              calcLogTopologyPrior() const;
@@ -55,6 +55,7 @@ inline TreeUpdater::TreeUpdater()
     {
     // std::cout << "Creating a TreeUpdater" << std::endl;
     Updater::clear();
+    reset();    //POLWARN
     }
 
 inline TreeUpdater::~TreeUpdater()
