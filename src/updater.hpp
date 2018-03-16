@@ -35,6 +35,7 @@ namespace strom
             virtual void            clear();
 
             virtual double          calcLogPrior() const = 0;
+            double                  calcEdgeLengthPrior() const; //POLNEW from tree_updater.hpp
             double                  calcLogLikelihood() const;
             virtual double          update(double prev_lnL);
 
@@ -213,6 +214,51 @@ inline double Updater::update(double prev_lnL)
     reset();
 
     return log_likelihood;
+    }
+
+//POLNEW moved from tree_updater.hpp
+inline double Updater::calcEdgeLengthPrior() const
+    {
+    Tree::SharedPtr tree = _tree_manipulator->getTree(); //POLNEW deleted typename
+    assert(tree);
+    double TL = _tree_manipulator->calcTreeLength();
+    double n = tree->numLeaves();
+    double num_edges = 2.0*n - (tree->isRooted() ? 2.0 : 3.0);
+#if 0
+    assert(_prior_parameters.size() > 0);
+    double rate = _prior_parameters[0];
+    double log_prior = num_edges*log(rate) - rate*TL;
+#else
+    // POLNEW
+    assert(_prior_parameters.size() == 3);
+    double a = _prior_parameters[0];    // shape of Gamma prior on TL
+    double b = _prior_parameters[1];    // scale of Gamma prior on TL
+    double c = _prior_parameters[2];    // parameter of Dirichlet prior on edge length proportions
+
+    double log_gamma_prior_on_TL = (a - 1.0)*log(TL) - TL/b - a*log(b) - std::lgamma(a);
+
+    // for n edges, the Dirichlet prior density is
+    //
+    // p1^{c-1} p2^{c-1} ... pn^{c-1}
+    // ------------------------------
+    //    n*Gamma(c) / Gamma(n*c)
+    //
+    // where n = num_edges, pk = edge length k / TL and Gamma is the Gamma function.
+    // If c == 1, then both numerator and denominator equal 1, so it is pointless
+    // do loop over edge lengths.
+    double log_edge_length_proportions_prior = std::lgamma(num_edges*c) - std::lgamma(c)*num_edges;
+    if (c != 1.0)
+        {
+        for (auto nd : tree->_preorder)
+            {
+            double edge_length_proportion = nd->_edge_length/TL;
+            log_edge_length_proportions_prior += (c - 1.0)*log(edge_length_proportion);
+            }
+        }
+
+    double log_prior = log_gamma_prior_on_TL + log_edge_length_proportions_prior;
+#endif
+    return log_prior;
     }
 
 }

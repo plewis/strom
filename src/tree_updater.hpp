@@ -18,7 +18,7 @@ namespace strom
 
             virtual double                      calcLogPrior() const;
             double                              calcLogTopologyPrior() const;
-            double                              calcEdgeLengthPrior() const;
+            //POLNEW deleted calcLogEdgeLengthPrior
 
         private:
 
@@ -92,23 +92,10 @@ inline double TreeUpdater::calcLogTopologyPrior() const
     return -log_num_topologies;
     }
 
-inline double TreeUpdater::calcEdgeLengthPrior() const
-    {
-    typename Tree::SharedPtr tree = _tree_manipulator->getTree();
-    assert(tree);
-    assert(_prior_parameters.size() > 0);
-    double rate = _prior_parameters[0];
-    double n = tree->numLeaves();
-    double TL = _tree_manipulator->calcTreeLength();
-    double num_edges = 2.0*n - (tree->isRooted() ? 2.0 : 3.0);
-    double log_prior = num_edges*log(rate) - rate*TL;
-    return log_prior;
-    }
-
 inline double TreeUpdater::calcLogPrior() const
     {
     double log_topology_prior = calcLogTopologyPrior();
-    double log_edge_length_prior = calcEdgeLengthPrior();
+    double log_edge_length_prior = Updater::calcEdgeLengthPrior(); //POLNEW
     return log_topology_prior + log_edge_length_prior;
     }
 

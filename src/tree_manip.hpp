@@ -28,6 +28,7 @@ namespace strom
             void                        nniNodeSwap(Node * a, Node * b);
             Node *                      randomInternalEdge(double uniform01);
             double                      calcTreeLength() const;
+            void                        scaleAllEdgeLengths(double scaler); //POLNEW
 
             void                        setTree(Tree::SharedPtr t);
             Tree::SharedPtr             getTree();
@@ -980,5 +981,15 @@ inline void TreeManip::nniNodeSwap(Node * a, Node * b)
 
     refreshPreorder();
     }
+
+//POLNEW
+inline void TreeManip::scaleAllEdgeLengths(double scaler)
+    {
+    for (auto nd : _tree->_preorder)
+        {
+        nd->_edge_length *= scaler;
+        }
+    }
+
 
 }

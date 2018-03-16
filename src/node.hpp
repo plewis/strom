@@ -11,12 +11,14 @@ namespace strom
     class Tree;
     class TreeManip;
     class Likelihood;
+    class Updater;  //POLNEW
 
     class Node
         {
             friend class Tree;
             friend class TreeManip;
             friend class Likelihood;
+            friend class Updater;   //POLNEW
 
         public:
                                         Node();
