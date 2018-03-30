@@ -9,17 +9,23 @@ namespace strom
 
     //class TreeManip;
     //class Likelihood;
+    //class Updater;
 
     class Tree
         {
 
         //friend class TreeManip;
         //friend class Likelihood;
+        //friend class Updater;
 
         public:
 
                                         Tree();
                                         ~Tree();
+
+            bool                        isRooted() const;
+            unsigned                    numLeaves() const;
+            unsigned                    numNodes() const;
 
         private:
 
@@ -30,9 +36,9 @@ namespace strom
             unsigned                    _nleaves;
             Node::PtrVector             _preorder;
             Node::Vector                _nodes;
-      
+
         public:
-        
+
             typedef std::shared_ptr< Tree > SharedPtr;
         };
 
@@ -53,6 +59,21 @@ namespace strom
         _root = 0;
         _nodes.clear();
         _preorder.clear();
+        }
+
+    inline bool Tree::isRooted() const
+        {
+        return _is_rooted;
+        }
+
+    inline unsigned Tree::numLeaves() const
+        {
+        return _nleaves;
+        }
+
+    inline unsigned Tree::numNodes() const
+        {
+        return (unsigned)_nodes.size();
         }
 
     }
