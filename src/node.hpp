@@ -29,8 +29,12 @@ namespace strom
                     Node *              getRightSib()   {return _right_sib;}
                     int                 getNumber()     {return _number;}
                     std::string         getName()       {return _name;}
-                    double              getEdgeLength() {return _edge_length;}
                     Split               getSplit()      {return _split;}
+                    double              getEdgeLength() {return _edge_length;}
+                    void                setEdgeLength(double v);
+
+
+            static const double _smallest_edge_length;
 
                     void                setEdgeLength(double v) {_edge_length = v;}
 
