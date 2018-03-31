@@ -11,12 +11,14 @@ namespace strom
     class Tree;
     class TreeManip;
     class Likelihood;
+    //class Updater;
 
     class Node
         {
             friend class Tree;
             friend class TreeManip;
             friend class Likelihood;
+            //friend class Updater;
 
         public:
                                         Node();
@@ -27,8 +29,12 @@ namespace strom
                     Node *              getRightSib()   {return _right_sib;}
                     int                 getNumber()     {return _number;}
                     std::string         getName()       {return _name;}
-                    double              getEdgeLength() {return _edge_length;}
                     Split               getSplit()      {return _split;}
+                    double              getEdgeLength() {return _edge_length;}
+                    void                setEdgeLength(double v);
+
+
+            static const double _smallest_edge_length;
 
             typedef std::vector<Node>    Vector;
             typedef std::vector<Node *>  PtrVector;
@@ -43,9 +49,6 @@ namespace strom
             int                 _number;
             std::string         _name;
             double              _edge_length;
-            //double              _x;
-            //double              _y;
-            //unsigned            _n;
             Split               _split;
         };
 
@@ -67,10 +70,12 @@ namespace strom
         _parent = 0;
         _number = 0;
         _name = "";
-        _edge_length = 0.0;
-        //_x = 0.0;
-        //_y = 0.0;
-        //_n = 0;
+        _edge_length = _smallest_edge_length;
+        }
+
+    inline void Node::setEdgeLength(double v)
+        {
+        _edge_length = (v < _smallest_edge_length ? _smallest_edge_length : v);
         }
 
     }
