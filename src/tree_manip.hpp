@@ -16,10 +16,11 @@ namespace strom
                                         TreeManip(Tree::SharedPtr t);
                                         ~TreeManip();
 
-            std::string                 makeNewick(unsigned precision) const;
-
             void                        setTree(Tree::SharedPtr t);
             Tree::SharedPtr             getTree();
+            std::string                 makeNewick(unsigned precision) const;
+            double                      calcTreeLength() const;
+            void                        scaleAllEdgeLengths(double scaler);
             void                        createTestTree();
             void                        clear();
 
@@ -64,6 +65,24 @@ inline void TreeManip::setTree(Tree::SharedPtr t)
 inline Tree::SharedPtr TreeManip::getTree()
     {
     return _tree;
+    }
+
+inline double TreeManip::calcTreeLength() const
+    {
+    double TL = 0.0;
+    for (auto nd : _tree->_preorder)
+        {
+        TL += nd->_edge_length;
+        }
+    return TL;
+    }
+
+inline void TreeManip::scaleAllEdgeLengths(double scaler)
+    {
+    for (auto nd : _tree->_preorder)
+        {
+        nd->_edge_length *= scaler;
+        }
     }
 
 inline void TreeManip::createTestTree()
