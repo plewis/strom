@@ -70,7 +70,7 @@ namespace strom
         _parent = 0;
         _number = 0;
         _name = "";
-        _edge_length = 0.0;
+        _edge_length = _smallest_edge_length;
         }
 
     inline void Node::setEdgeLength(double v)
