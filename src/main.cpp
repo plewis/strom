@@ -7,6 +7,7 @@ using namespace strom;
 std::string Strom::_program_name    = "strom";
 unsigned    Strom::_major_version   = 1;
 unsigned    Strom::_minor_version   = 0;
+
 const double Node::_smallest_edge_length = 1.0e-12;
 
 int main(int argc, const char * argv[])

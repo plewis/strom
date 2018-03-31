@@ -18,6 +18,7 @@ class Likelihood
                                     Likelihood();
                                     ~Likelihood();
 
+        void                        useStoredData(bool using_data);
         std::string                 availableResources();
 
         double                      calcLogLikelihood(typename Tree::SharedPtr t);
@@ -51,6 +52,8 @@ class Likelihood
         bool                        _rooted;
         bool                        _prefer_gpu;
 
+        bool                        _using_data;
+
         GTRModel::SharedPtr         _model;
 
     public:
@@ -65,6 +68,7 @@ inline Likelihood::Likelihood()
     _npatterns  = 0;
     _rooted     = false;
     _prefer_gpu = false;
+    _using_data = true;
 
     _model = GTRModel::SharedPtr(new GTRModel());
 
@@ -126,6 +130,11 @@ inline void Likelihood::setData(Data::SharedPtr data)
         assert(_ntaxa > 0 && _nstates > 0 && _npatterns > 0);
         initBeagleLib();
         }
+    }
+
+inline void Likelihood::useStoredData(bool using_data)
+    {
+    _using_data = using_data;
     }
 
 inline void Likelihood::initBeagleLib()

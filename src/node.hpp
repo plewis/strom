@@ -33,21 +33,6 @@ namespace strom
                     double              getEdgeLength() {return _edge_length;}
                     void                setEdgeLength(double v);
 
-
-            static const double _smallest_edge_length;
-
-                    void                setEdgeLength(double v) {_edge_length = v;}
-
-            static const double          _smallest_edge_length;
-
-                    double              getEdgeLength() {return _edge_length;}
-                    void                setEdgeLength(double v);
-
-            static const double _smallest_edge_length;
-
-                    double              getEdgeLength() {return _edge_length;}
-                    void                setEdgeLength(double v);
-
             static const double _smallest_edge_length;
 
             typedef std::vector<Node>    Vector;
