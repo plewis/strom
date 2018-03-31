@@ -32,7 +32,6 @@ namespace strom
 
             void                        setTree(Tree::SharedPtr t);
             Tree::SharedPtr             getTree();
-            std::string                 makeNewick(unsigned precision) const;
             double                      calcTreeLength() const;
             void                        scaleAllEdgeLengths(double scaler);
             void                        createTestTree();
