@@ -5,7 +5,7 @@
 #include <stack>
 #include <set>
 #include <regex>
-#include <cmath>//POLNEW
+#include <cmath>
 #include <boost/range/adaptor/reversed.hpp>
 #include <boost/format.hpp>
 #include "tree.hpp"

@@ -36,6 +36,11 @@ namespace strom
 
             static const double          _smallest_edge_length;
 
+                    double              getEdgeLength() {return _edge_length;}
+                    void                setEdgeLength(double v);
+
+            static const double _smallest_edge_length;
+
             typedef std::vector<Node>    Vector;
             typedef std::vector<Node *>  PtrVector;
 
@@ -49,9 +54,6 @@ namespace strom
             int                 _number;
             std::string         _name;
             double              _edge_length;
-            //double              _x;
-            //double              _y;
-            //unsigned            _n;
             Split               _split;
         };
 
@@ -74,9 +76,6 @@ namespace strom
         _number = 0;
         _name = "";
         _edge_length = _smallest_edge_length;
-        //_x = 0.0;
-        //_y = 0.0;
-        //_n = 0;
         }
 
     inline void Node::setEdgeLength(double v)
