@@ -18,7 +18,7 @@ namespace strom
             friend class Tree;
             friend class TreeManip;
             friend class Likelihood;
-            friend class Updater;   //POLNEW
+            friend class Updater;
 
         public:
                                         Node();
@@ -34,7 +34,8 @@ namespace strom
 
                     void                setEdgeLength(double v) {_edge_length = v;}
 
-            static const double          _smallest_edge_length; //POLNEW
+            static const double          _smallest_edge_length;
+
             typedef std::vector<Node>    Vector;
             typedef std::vector<Node *>  PtrVector;
 
@@ -72,10 +73,16 @@ namespace strom
         _parent = 0;
         _number = 0;
         _name = "";
-        _edge_length = 0.0;
+        _edge_length = _smallest_edge_length;
         //_x = 0.0;
         //_y = 0.0;
         //_n = 0;
         }
 
+    inline void Node::setEdgeLength(double v)
+        {
+        _edge_length = (v < _smallest_edge_length ? _smallest_edge_length : v);
+        }
+
     }
+
