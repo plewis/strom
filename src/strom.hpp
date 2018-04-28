@@ -13,6 +13,7 @@ class Strom
                             Strom();
                             ~Strom();
 
+        void                clear();
         void                processCommandLineOptions(int argc, const char * argv[]);
         void                run();
 
@@ -20,6 +21,9 @@ class Strom
 
         std::string         _data_file_name;
         std::string         _tree_file_name;
+
+        Data::SharedPtr        _data;
+        TreeSummary::SharedPtr _tree_summary;
 
         static std::string  _program_name;
         static unsigned     _major_version;
@@ -30,6 +34,7 @@ class Strom
 inline Strom::Strom()
     {
     std::cout << "Constructing a Strom" << std::endl;
+    clear();
     }
 
 inline Strom::~Strom()
@@ -37,9 +42,17 @@ inline Strom::~Strom()
     std::cout << "Destroying a Strom" << std::endl;
     }
 
+inline void Strom::clear()
+    {
+    _data_file_name = "";
+    _tree_file_name = "";
+    _data           = nullptr;
+    _tree_summary   = nullptr;
+    }
+
 inline void Strom::processCommandLineOptions(int argc, const char * argv[])
     {
-    boost::program_options::variables_map       vm;
+    boost::program_options::variables_map vm;
     boost::program_options::options_description desc("Allowed options");
     desc.add_options()
         ("help,h", "produce help message")
@@ -48,6 +61,17 @@ inline void Strom::processCommandLineOptions(int argc, const char * argv[])
         ("treefile,t",  boost::program_options::value(&_tree_file_name)->required(), "name of data file in NEXUS format")
         ;
     boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
+
+    try
+        {
+        const boost::program_options::parsed_options & parsed = boost::program_options::parse_config_file< char >("strom.conf", desc, false);  // 3rd. argument = allow unrecognized options
+        boost::program_options::store(parsed, vm);
+        }
+    catch(boost::program_options::reading_file & x)
+        {
+        std::cout << "Note: configuration file (strom.conf) not found" << std::endl;
+        }
+
     boost::program_options::notify(vm);
 
     // If user specified --help on command line, output usage summary and quit
@@ -72,24 +96,24 @@ inline void Strom::run()
     try
         {
         // Read and store data
-        Data::SharedPtr d(new Data());
-        d->getDataFromFile(_data_file_name);
+        _data = Data::SharedPtr(new Data());
+        _data->getDataFromFile(_data_file_name);
 
-        // Create a likelihood object that will compute log-likelihoods
-        Likelihood::SharedPtr likelihood(new Likelihood());
-        likelihood->setData(d);
+        // Create a Likelihood object that will compute log-likelihoods
+        Likelihood::SharedPtr likelihood = Likelihood::SharedPtr(new Likelihood());
+        likelihood->setData(_data);
 
         // Read in a tree
-        TreeSummary::SharedPtr tree_summary(new TreeSummary());
-        tree_summary->readTreefile(_tree_file_name, 0);
-        Tree::SharedPtr tree = tree_summary->getTree(0);
+        _tree_summary = TreeSummary::SharedPtr(new TreeSummary());
+        _tree_summary->readTreefile(_tree_file_name, 0);
+        Tree::SharedPtr tree = _tree_summary->getTree(0);
 
         // Calculate the log-likelihood for the tree
         double lnL = likelihood->calcLogLikelihood(tree);
         std::cout << boost::str(boost::format("log likelihood = %.5f") % lnL) << std::endl;
         std::cout << "      (expecting -286.9238)" << std::endl;
         }
-    catch (XStrom x)
+    catch (XStrom & x)
         {
         std::cerr << "Strom encountered a problem:\n  " << x.what() << std::endl;
         }
