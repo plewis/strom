@@ -305,8 +305,7 @@ inline void Likelihood::defineOperations(typename Tree::SharedPtr t)
     _pmatrix_index.clear();
     _edge_lengths.clear();
 
-    //BOOST_REVERSE_FOREACH(T * nd, t->_preorder)
-    for (auto nd : boost::adaptors::reverse(t->_preorder))
+    for (auto nd : boost::adaptors::reverse(t->_levelorder))
         {
         assert(nd->_number >= 0);
         if (!nd->_left_child)
