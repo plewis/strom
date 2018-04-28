@@ -35,6 +35,7 @@ namespace strom
             Node *                      _root;
             unsigned                    _nleaves;
             Node::PtrVector             _preorder;
+            Node::PtrVector             _levelorder;
             Node::Vector                _nodes;
 
         public:
@@ -59,6 +60,7 @@ namespace strom
         _root = 0;
         _nodes.clear();
         _preorder.clear();
+        _levelorder.clear();
         }
 
     inline bool Tree::isRooted() const

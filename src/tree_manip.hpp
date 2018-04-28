@@ -3,6 +3,7 @@
 #include <cassert>
 #include <memory>
 #include <stack>
+#include <queue>
 #include <set>
 #include <regex>
 #include <cmath>
@@ -40,6 +41,7 @@ namespace strom
         private:
 
             void                        refreshPreorder();
+            void                        refreshLevelorder();
             void                        rerootHelper(Node * m, Node * t);
             void                        extractNodeNumberFromName(Node * nd, std::set<unsigned> & used);
             void                        extractEdgeLen(Node * nd, std::string edge_length_string);
@@ -189,6 +191,12 @@ inline void TreeManip::createTestTree()
     _tree->_preorder.push_back(first_leaf);
     _tree->_preorder.push_back(second_leaf);
     _tree->_preorder.push_back(third_leaf);
+
+    _tree->_levelorder.push_back(first_internal);
+    _tree->_levelorder.push_back(second_internal);
+    _tree->_levelorder.push_back(third_leaf);
+    _tree->_levelorder.push_back(first_leaf);
+    _tree->_levelorder.push_back(second_leaf);
     }
 
 inline std::string TreeManip::makeNewick(unsigned precision) const
@@ -395,6 +403,73 @@ inline void TreeManip::refreshPreorder()
 
     if (_tree->_is_rooted)
         _tree->_root->_number = curr_internal;
+    }
+
+//                            1. start by adding only descendant of root node to buffer queue
+//                               queue = [1], stack = []
+//                            2. move node at front of buffer queue to back of stack vector
+//                               queue = [], stack = [1]
+//                 8    9     3. add this node's immediate children to back of buffer queue
+//                  \  /         queue = [2,3], stack = [1]
+//                   \/       4. repeat 2 and 3 until all nodes are processed
+//      4  5    6    7           (2) queue = [3], stack = [1,2]
+//       \ |     \  /            (3) queue = [3,4,5], stack = [1,2]
+//        \|      \/             (2) queue = [4,5], stack = [1,2,3]
+//         2      3              (3) queue = [4,5,6,7], stack = [1,2,3]
+//          \    /               (2) queue = [5,6,7], stack = [1,2,3,4]
+//           \  /                (3) no-op: 4 has no children
+//            \/                 (2) queue = [6,7], stack = [1,2,3,4,5]
+//            1                  (3) no-op: 5 has no children
+//            |                  (2) queue = [7], stack = [1,2,3,4,5,6]
+//            0                  (3) no-op: 6 has no children
+//                               (2) queue = [], stack = [1,2,3,4,5,6,7]
+//                               (3) queue = [8,9], stack = [1,2,3,4,5,6,7]
+//                               (2) queue = [9], stack = [1,2,3,4,5,6,7,8]
+//                               (3) no-op: 8 has no children
+//                               (2) queue = [], stack = [1,2,3,4,5,6,7,8,9]
+//                               (3) no-op: 9 has no children
+//                            5. stack vector is now in level order
+inline void TreeManip::refreshLevelorder()
+    {
+    if (!_tree->_root)
+        return;
+
+    // q is the buffer queue
+    std::queue<Node *> q;
+
+    // _tree->_levelorder is the stack vector
+    _tree->_levelorder.clear();
+    _tree->_levelorder.reserve(_tree->_nodes.size() - 1);
+
+    Node * nd = _tree->_root->_left_child;
+
+    // sanity check: first node should be the only child of the root node
+    assert(nd->_right_sib == 0);
+
+    // Push nd onto back of queue
+    q.push(nd);
+
+    while (!q.empty())
+        {
+        // pop nd off front of queue
+        nd = q.front(); q.pop();
+
+        // and push it onto the stack
+        _tree->_levelorder.push_back(nd);
+
+        // add all children of nd to back of queue
+        Node * child = nd->_left_child;
+        if (child)
+            {
+            q.push(child);
+            child = child->_right_sib;
+            while (child)
+                {
+                q.push(child);
+                child = child->_right_sib;
+                }
+            }
+        }   // end while loop
     }
 
 inline bool TreeManip::canHaveSibling(Node * nd, bool rooted, bool allow_polytomies)
@@ -843,6 +918,7 @@ inline void TreeManip::buildFromNewick(const std::string newick, bool rooted, bo
             }
 
         refreshPreorder();
+        refreshLevelorder();
         }
     catch(XStrom & x) //POLWARN
         {
