@@ -2,6 +2,8 @@
 
 #include <cassert>
 #include <memory>
+#include <stack>
+#include <boost/format.hpp>
 #include "tree.hpp"
 
 namespace strom
@@ -20,6 +22,8 @@ namespace strom
             void                        scaleAllEdgeLengths(double scaler);
             void                        createTestTree();
             void                        clear();
+
+            std::string                 makeNewick(unsigned precision) const;
 
         private:
 
@@ -172,5 +176,61 @@ inline void TreeManip::createTestTree()
     _tree->_levelorder.push_back(first_leaf);
     _tree->_levelorder.push_back(second_leaf);
 }
+
+inline std::string TreeManip::makeNewick(unsigned precision) const
+	{
+    std::string newick;
+    const boost::format tip_node_format( boost::str(boost::format("%%d:%%.%df") % precision) );
+    const boost::format internal_node_format( boost::str(boost::format("):%%.%df") % precision) );
+    std::stack<Node *> node_stack;
+
+    Node * root_tip = (_tree->_is_rooted ? 0 : _tree->_root);
+    for (auto nd : _tree->_preorder)
+        {
+        if (nd->_left_child)
+            {
+            newick += "(";
+            node_stack.push(nd);
+            if (root_tip)
+                {
+                newick += boost::str(boost::format(tip_node_format) % (root_tip->_number + 1) % nd->_edge_length);
+                newick += ",";
+                root_tip = 0;
+                }
+            }
+        else
+            {
+            newick += boost::str(boost::format(tip_node_format) % (nd->_number + 1) % nd->_edge_length);
+            if (nd->_right_sib)
+                newick += ",";
+            else
+                {
+                Node * popped = (node_stack.empty() ? 0 : node_stack.top());
+                while (popped && !popped->_right_sib)
+                    {
+                    node_stack.pop();
+                    if (node_stack.empty())
+                        {
+                        newick += ")";
+                        popped = 0;
+                        }
+                    else
+                        {
+                        newick += boost::str(boost::format(internal_node_format) % popped->_edge_length);
+                        popped = node_stack.top();
+                        }
+                    }
+                if (popped && popped->_right_sib)
+                    {
+                    node_stack.pop();
+                    newick += boost::str(boost::format(internal_node_format) % popped->_edge_length);
+                    newick += ",";
+                    }
+                }
+            }
+        }
+
+    return newick;
+    }
 
 }

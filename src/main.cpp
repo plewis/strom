@@ -12,6 +12,7 @@ int main(int argc, const char * argv[])
     std::cout << "Starting..." << std::endl;
     TreeManip tm;
     tm.createTestTree();
+    std::cout << tm.makeNewick(3) << std::endl;
     std::cout << "\nFinished!" << std::endl;
 
     return 0;
