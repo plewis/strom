@@ -30,6 +30,7 @@ namespace strom
 
             std::string                 makeNewick(unsigned precision) const;
             void                        buildFromNewick(const std::string newick, bool rooted, bool allow_polytomies);
+            void                        storeSplits(std::set<Split> & splitset);
             void                        rerootAt(int node_index);
 
         private:
@@ -52,20 +53,20 @@ namespace strom
 
 inline TreeManip::TreeManip()
     {
-    std::cerr << "Constructing a TreeManip" << std::endl;
+    //std::cerr << "Constructing a TreeManip" << std::endl;
     clear();
     }
 
 inline TreeManip::TreeManip(Tree::SharedPtr t)
     {
-    std::cerr << "Constructing a TreeManip with a supplied tree" << std::endl;
+    //std::cerr << "Constructing a TreeManip with a supplied tree" << std::endl;
     clear();
     setTree(t);
     }
 
 inline TreeManip::~TreeManip()
     {
-    std::cerr << "Destroying a TreeManip" << std::endl;
+    //std::cerr << "Destroying a TreeManip" << std::endl;
     }
 
 inline void TreeManip::clear()
@@ -923,5 +924,35 @@ inline void TreeManip::buildFromNewick(const std::string newick, bool rooted, bo
 
     }
 
+inline void TreeManip::storeSplits(std::set<Split> & splitset)
+    {
+    // Start by clearing and resizing all splits
+    for (auto & nd : _tree->_nodes)
+        {
+        nd._split.resize(_tree->_nleaves);
+        }
+
+    // Now do a postorder traversal and add the bit corresponding
+    // to the current node in its parent node's split
+    for (auto nd : boost::adaptors::reverse(_tree->_preorder))
+        {
+        if (nd->_left_child)
+            {
+            // add this internal node's split to splitset
+            splitset.insert(nd->_split);
+            }
+        else
+            {
+            // set bit corresponding to this leaf node's number
+            nd->_split.setBitAt(nd->_number);
+            }
+
+        if (nd->_parent)
+            {
+            // parent's bits are the union of the bits set in all its children
+            nd->_parent->_split.addSplit(nd->_split);
+            }
+        }
+    }
 
 }

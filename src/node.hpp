@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 #include  <iostream>
-//#include "split.hpp"
+#include "split.hpp"
 
 namespace strom
     {
@@ -29,7 +29,7 @@ namespace strom
                     Node *              getRightSib()   {return _right_sib;}
                     int                 getNumber()     {return _number;}
                     std::string         getName()       {return _name;}
-                    //Split               getSplit()      {return _split;}
+                    Split               getSplit()      {return _split;}
 
                     double              getEdgeLength() {return _edge_length;}
                     void                setEdgeLength(double v);
@@ -49,18 +49,18 @@ namespace strom
             int                 _number;
             std::string         _name;
             double              _edge_length;
-            //Split               _split;
+            Split               _split;
         };
 
     inline Node::Node()
         {
-        std::cout << "Creating Node object" << std::endl;
+        //std::cout << "Creating Node object" << std::endl;
         clear();
         }
 
     inline Node::~Node()
         {
-        std::cout << "Destroying Node object" << std::endl;
+        //std::cout << "Destroying Node object" << std::endl;
         }
 
     inline void Node::clear()

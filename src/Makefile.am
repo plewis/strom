@@ -4,7 +4,9 @@ strom_SOURCES = main.cpp \
                 tree.hpp \
                 tree_manip.hpp \
                 xstrom.hpp \
-                data.hpp
+                data.hpp \
+                split.hpp \
+                tree_summary.hpp
 strom_CPPFLAGS = -std=c++11 -Wall \
                 -I$(HOME)/include/libhmsbeagle-1 \
                 -I$(HOME)/include \
