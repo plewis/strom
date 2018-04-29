@@ -1,6 +1,7 @@
 #include <iostream>
 #include "node.hpp"
 #include "tree.hpp"
+#include "tree_manip.hpp"
 
 using namespace strom;
 
@@ -9,7 +10,8 @@ const double Node::_smallest_edge_length = 1.0e-12;
 int main(int argc, const char * argv[])
     {
     std::cout << "Starting..." << std::endl;
-    Tree tree;
+    TreeManip tm;
+    tm.createTestTree();
     std::cout << "\nFinished!" << std::endl;
 
     return 0;
