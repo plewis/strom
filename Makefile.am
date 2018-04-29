@@ -1,9 +1,4 @@
 SUBDIRS = src
-dist_doc_DATA = rbcL.nex \
-                rbcl10.nex \
-                rbcl738.nex \
-                rbcLjc.tre \
-                rbcl10.tre \
+dist_doc_DATA = rbcl738.nex \
                 rbcl738nj.tre \
-                trees.t \
                 paup.nex

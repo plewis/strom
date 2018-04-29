@@ -25,3 +25,4 @@ AC_C_INLINE
 # Checks for library functions.
 
 AC_OUTPUT
+

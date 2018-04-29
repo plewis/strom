@@ -1,24 +1,7 @@
 bin_PROGRAMS = strom
 strom_SOURCES = main.cpp \
-                strom.hpp \
                 node.hpp \
-                tree.hpp \
-                split.hpp \
-                tree_manip.hpp \
-                data.hpp \
-                gtr_model.hpp \
-                lot.hpp \
-                likelihood.hpp \
-                tree_summary.hpp \
-                updater.hpp \
-                gamma_shape_updater.hpp \
-                dirichlet_updater.hpp \
-                statefreq_updater.hpp \
-                exchangeability_updater.hpp \
-                tree_updater.hpp \
-                chain.hpp \
-                output_manager.hpp \
-                xstrom.hpp
+                tree.hpp
 strom_CPPFLAGS = -std=c++11 -Wall \
                 -I$(HOME)/include/libhmsbeagle-1 \
                 -I$(HOME)/include \
