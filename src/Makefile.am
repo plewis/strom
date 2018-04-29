@@ -1,7 +1,9 @@
 bin_PROGRAMS = strom
 strom_SOURCES = main.cpp \
                 node.hpp \
-                tree.hpp
+                tree.hpp \
+                tree_manip.hpp \
+                xstrom.hpp
 strom_CPPFLAGS = -std=c++11 -Wall \
                 -I$(HOME)/include/libhmsbeagle-1 \
                 -I$(HOME)/include \
