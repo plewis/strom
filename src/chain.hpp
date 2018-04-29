@@ -221,7 +221,7 @@ inline void Chain::clear()
     _tree_scale_updater->setTargetAcceptanceRate(0.3);
     //_tree_scale_updater->setPriorParameters(std::vector<double>(1, 10.0)); //POLNEW
     _tree_scale_updater->setPriorParameters({1000.0, 0.1, 1.0}); //POLNEW
-#error
+//#error
     _chain_index = 0;
     setHeatingPower(1.0);
     startTuning();

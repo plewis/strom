@@ -34,6 +34,9 @@ class Strom
 
         OutputManager::SharedPtr    _output_manager;
 
+        Data::SharedPtr             _data;
+        TreeSummary::SharedPtr      _tree_summary;
+
         std::string                 _data_file_name;
         std::string                 _tree_file_name;
 
@@ -80,6 +83,8 @@ inline void Strom::clear()
     _gtr            = nullptr;
     _likelihood      = nullptr;
     _lot            = nullptr;
+    _data           = nullptr;
+    _tree_summary   = nullptr;
 
     _state_frequencies.resize(0);
     _exchangeabilities.resize(0);
@@ -102,10 +107,9 @@ inline void Strom::clear()
     _num_burnin_iter = 1000;
     }
 
-//POLWARN
 inline void Strom::processCommandLineOptions(int argc, const char * argv[])
     {
-    boost::program_options::variables_map       vm;
+    boost::program_options::variables_map vm;
     boost::program_options::options_description desc("Allowed options");
     desc.add_options()
         ("help,h",       "produce help message")
@@ -126,6 +130,17 @@ inline void Strom::processCommandLineOptions(int argc, const char * argv[])
         ("burnin",       boost::program_options::value(&_num_burnin_iter)->default_value(100), "number of iterations used to burn in chains")
         ;
     boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
+
+    try
+        {
+        const boost::program_options::parsed_options & parsed = boost::program_options::parse_config_file< char >("strom.conf", desc, false);  // 3rd. argument = allow unrecognized options
+        boost::program_options::store(parsed, vm);
+        }
+    catch(boost::program_options::reading_file & x)
+        {
+        std::cout << "Note: configuration file (strom.conf) not found" << std::endl;
+        }
+
     boost::program_options::notify(vm);
 
     // If user specified --help on command line, output usage summary and quit
@@ -422,8 +437,8 @@ inline void Strom::run()
     try
         {
         // Read and store data
-        Data::SharedPtr d(new Data());
-        d->getDataFromFile(_data_file_name);
+        _data = Data::SharedPtr(new Data());
+        _data->getDataFromFile(_data_file_name);
 
         // Create a substitution model
         _gtr = GTRModel::SharedPtr(new GTRModel());
@@ -447,7 +462,7 @@ inline void Strom::run()
         // likelihood->setData(d);
         // likelihood->setModel(gtr);
         _likelihood = Likelihood::SharedPtr(new Likelihood());
-        _likelihood->setData(d);
+        _likelihood->setData(_data);
         _likelihood->setModel(_gtr);
 
         // Read in a tree
@@ -470,7 +485,7 @@ inline void Strom::run()
         // Create an output manager and open output files
         _output_manager.reset(new OutputManager);
         _output_manager->outputConsole(boost::str(boost::format("\n%12s %12s %12s") % "iteration" % "logLike" % "logPrior"));
-        _output_manager->openTreeFile("trees.tre", d);
+        _output_manager->openTreeFile("trees.tre", _data);
         _output_manager->openParameterFile("params.txt", _likelihood->getModel());
 
         //POLNEW added code
@@ -539,7 +554,7 @@ inline void Strom::run()
         tree_summary->readTreefile("trees.tre", 1);
         tree_summary->showSummary();
         }
-    catch (XStrom & x)  //POLWARN
+    catch (XStrom & x)
         {
         std::cerr << "Strom encountered a problem:\n  " << x.what() << std::endl;
         }

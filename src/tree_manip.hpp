@@ -33,8 +33,6 @@ namespace strom
 
             void                        setTree(Tree::SharedPtr t);
             Tree::SharedPtr             getTree();
-            double                      calcTreeLength() const;
-            void                        scaleAllEdgeLengths(double scaler);
             void                        createTestTree();
             void                        clear();
 
@@ -88,24 +86,6 @@ inline void TreeManip::setTree(Tree::SharedPtr t)
 inline Tree::SharedPtr TreeManip::getTree()
     {
     return _tree;
-    }
-
-inline double TreeManip::calcTreeLength() const
-    {
-    double TL = 0.0;
-    for (auto nd : _tree->_preorder)
-        {
-        TL += nd->_edge_length;
-        }
-    return TL;
-    }
-
-inline void TreeManip::scaleAllEdgeLengths(double scaler)
-    {
-    for (auto nd : _tree->_preorder)
-        {
-        nd->_edge_length *= scaler;
-        }
     }
 
 inline void TreeManip::createTestTree()
@@ -1078,7 +1058,6 @@ inline void TreeManip::nniNodeSwap(Node * a, Node * b)
     refreshPreorder();
     }
 
-//POLNEW
 inline void TreeManip::scaleAllEdgeLengths(double scaler)
     {
     for (auto nd : _tree->_preorder)
@@ -1086,6 +1065,5 @@ inline void TreeManip::scaleAllEdgeLengths(double scaler)
         nd->_edge_length *= scaler;
         }
     }
-
 
 }
