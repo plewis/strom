@@ -1,0 +1,78 @@
+#NEXUS
+
+begin taxa;
+    dimensions ntax=14;
+    taxlabels
+        Atractomorpha_echinata
+        Bracteacoccus_aerius
+        Bracteacoccus_minor
+        Chlorotetraedron_incus
+        Chromochloris_zofingiensis
+        Kirchneriella_aperta
+        Mychonastes_homosphaera
+        Neochloris_aquatica
+        Ourococcus_multisporus
+        Pediastrum_duplex
+        Pseudomuriella_schumacherensis
+        Rotundella_rotunda
+        Scenedesmus_obliquus
+        Stigeoclonium_helveticum
+    ;
+end;
+
+Begin trees;  [Treefile saved Monday, October 26, 2015 at 7:44:59 PM Eastern Daylight Time]
+[!
+>Data file = rbcL.nex
+>Heuristic search settings:
+>  Optimality criterion = likelihood
+>    Likelihood settings:
+>                      Substitution types = 1
+>                       State frequencies = equal
+>          Proportion of invariable sites = none
+>                 Rates at variable sites = equal
+>                    Model correspondence = JC69
+>
+>      Number of distinct data patterns under this model = 23
+>      Molecular clock not enforced
+>      Starting branch lengths obtained using Rogers-Swofford approximation method
+>      Trees with approximate log likelihoods 5% or further from the target score are rejected without additional iteration
+>      Branch-length optimization = one-dimensional Newton-Raphson with pass limit=20, tolerance=1e-07
+>      Likelihood calculations performed in single precision
+>      Vector processing enabled
+>      Conditional-likelihood rescaling threshold = 1e-20
+>
+>  Starting tree(s) obtained via stepwise addition
+>    Addition sequence: as-is
+>    Number of trees held at each step = 1
+>  Branch-swapping algorithm: tree-bisection-reconnection (TBR) with reconnection limit = 8
+>    Steepest descent option not in effect
+>  Initial 'Maxtrees' setting = 1100 (will be auto-increased by 100)
+>  Branches collapsed (creating polytomies) if branch length is less than or equal to 1e-08
+>  'MulTrees' option in effect
+>  No topological constraints in effect
+>  Trees are unrooted
+>
+>Heuristic search completed
+>  Total number of rearrangements tried = 1632
+>  Score of best tree(s) found = 286.9238
+>  Number of trees retained = 1
+>  Time used = 0.14 sec (CPU time = 0.14 sec)
+]
+    Translate
+        1 Atractomorpha_echinata,
+        2 Bracteacoccus_aerius,
+        3 Bracteacoccus_minor,
+        4 Chlorotetraedron_incus,
+        5 Chromochloris_zofingiensis,
+        6 Kirchneriella_aperta,
+        7 Mychonastes_homosphaera,
+        8 Neochloris_aquatica,
+        9 Ourococcus_multisporus,
+        10 Pediastrum_duplex,
+        11 Pseudomuriella_schumacherensis,
+        12 Rotundella_rotunda,
+        13 Scenedesmus_obliquus,
+        14 Stigeoclonium_helveticum
+        ;
+tree 'PAUP_1' = [&U] (1:0.052781,(((((((((2:1.00000e-08,3:0.051745):0.016986,5:0.070562):0.017072,(6:0.047518,11:0.067139):0.025263):0.016986,9:1.00000e-08):0.016955,4:0.034406):0.016955,13:1.00000e-08):1.00000e-08,7:0.051745):0.016955,12:0.016955):0.034406,(8:1.00000e-08,10:1.00000e-08):1.00000e-08):0.052781,14:0.071604);
+End;

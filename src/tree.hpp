@@ -8,14 +8,14 @@ namespace strom
     {
 
     class TreeManip;
-    //class Likelihood;
+    class Likelihood;
     //class Updater;
 
     class Tree
         {
 
         friend class TreeManip;
-        //friend class Likelihood;
+        friend class Likelihood;
         //friend class Updater;
 
         public:
