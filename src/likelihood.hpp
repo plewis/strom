@@ -7,6 +7,7 @@
 #include <boost/range/adaptor/reversed.hpp>
 #include "libhmsbeagle/beagle.h"
 #include "data.hpp"
+#include "model.hpp"
 #include "xstrom.hpp"
 
 namespace strom {
@@ -26,6 +27,10 @@ class Likelihood
         void                        setData(Data::SharedPtr d);
         Data::SharedPtr             getData();
 
+        void                        setModel(Model::SharedPtr model);
+        Model::SharedPtr            getModel();
+
+
     private:
 
         void                        initBeagleLib();
@@ -44,6 +49,7 @@ class Likelihood
         std::vector<double>         _edge_lengths;
 
         Data::SharedPtr             _data;
+        Model::SharedPtr            _model;
         unsigned                    _ntaxa;
         unsigned                    _nstates;
         unsigned                    _npatterns;
@@ -65,6 +71,8 @@ inline Likelihood::Likelihood()
     _rooted     = false;
     _prefer_gpu = false;
     _using_data = true;
+    _model      = Model::SharedPtr(new Model());
+
 
     // store BeagleLib error codes so that useful
     // error messages may be provided to the user
@@ -129,6 +137,26 @@ inline void Likelihood::setData(Data::SharedPtr data)
         }
     }
 
+inline void Likelihood::setModel(Model::SharedPtr model)
+    {
+    _model = model;
+    if (_instance >= 0)
+        {
+        // init function was previously called, so set the model and create new BeagleLib instance
+        int code = beagleFinalizeInstance(_instance);
+        if (code != 0)
+            throw XStrom(boost::str(boost::format("Likelihood setModel function failed to finalize BeagleLib instance. BeagleLib error code was %d (%s).") % code % _beagle_error[code]));
+        _instance = -1;
+        assert(_ntaxa > 0 && _nstates > 0 && _npatterns > 0);
+        initBeagleLib();
+        }
+    }
+
+inline Model::SharedPtr Likelihood::getModel()
+    {
+    return _model;
+    }
+
 inline void Likelihood::useStoredData(bool using_data)
     {
     _using_data = using_data;
@@ -173,7 +201,7 @@ inline void Likelihood::initBeagleLib()
          _npatterns,                // patterns
          1,                         // models
          num_transition_probs,      // transition matrices
-         1,                         // rate categories
+         _model->_num_categ,        // rate categories
          0,                         // scale buffers
          NULL,                      // resource restrictions
          0,                         // length of resource list
@@ -235,73 +263,32 @@ inline void Likelihood::setPatternWeights()
 
 inline void Likelihood::setDiscreteGammaShape()
     {
-    // For now we are ignoring shape and assuming rates are equal
-    double rates[1] = {1.0};
-    double probs[1] = {1.0};
-
-    // This function sets the vector of category rates for an instance
-    int code = beagleSetCategoryRates(
-        _instance,  // instance number
-        rates);     // vector containing rate scalers
-
+    int code = _model->setBeagleAmongSiteRateVariationRates(_instance);
     if (code != 0)
         throw XStrom(boost::str(boost::format("failed to set category rates. BeagleLib error code was %d (%s)") % code % _beagle_error[code]));
 
-    // This function copies a category weights array into an instance buffer.
-    // maybe need to set seqLens times, same as eigenBufferCount
-    code = beagleSetCategoryWeights(
-        _instance,  // Instance number
-        0,          // Index of category weights buffer. eigenIndex
-        probs);     // Category weights array (categoryCount)
-
+    code = _model->setBeagleAmongSiteRateVariationProbs(_instance);
     if (code != 0)
         throw XStrom(boost::str(boost::format("failed to set category probabilities. BeagleLib error code was %d (%s)") % code % _beagle_error[code]));
     }
 
 inline void Likelihood::setModelRateMatrix()
     {
-    // This function copies a state frequency array into an instance buffer.
-    double state_freqs[4] = {0.25, 0.25, 0.25, 0.25};
-    int code = beagleSetStateFrequencies(
-         _instance,          // Instance number
-         0,                  // Index of state frequencies buffer. eigenIndex
-         state_freqs);      // State frequencies array (stateCount)
-
+    int code = _model->setBeagleStateFrequencies(_instance);
     if (code != 0)
         throw XStrom(boost::str(boost::format("failed to set state frequencies. BeagleLib error code was %d (%s)") % code % _beagle_error[code]));
 
-    double eigenvalues[4] = {
-        -4.0/3.0,
-        -4.0/3.0,
-        -4.0/3.0,
-        0.0
-        };
-
-    double eigenvectors[16] = {
-        -1,   -1,  -1,  1,
-         0,    0,   1,  1,
-         0,    1,   0,  1,
-         1,    0,   0,  1
-        };
-
-    double inverse_eigenvectors[16] = {
-        -0.25,   -0.25,   -0.25,   0.75,
-        -0.25,   -0.25,    0.75,  -0.25,
-        -0.25,    0.75,   -0.25,  -0.25,
-         0.25,    0.25,    0.25,   0.25
-        };
-
-    // This function copies an eigen-decomposition into an instance buffer.
-    // Note that BeagleLib transposes the input eigenvectors and inverse-eigenvectors.
-    code = beagleSetEigenDecomposition(
-        _instance,                              // Instance number
-        0,                                      // Index of eigen-decomposition buffer
-        (const double *)eigenvectors,           // Flattened matrix (stateCount x stateCount) of eigenvectors
-        (const double *)inverse_eigenvectors,   // Flattened matrix (stateCount x stateCount) of inverse-eigenvectors
-        eigenvalues);                           // Vector of eigenvalues
-
+    code = _model->setBeagleEigenDecomposition(_instance);
     if (code != 0)
         throw XStrom(boost::str(boost::format("failed to set eigen decomposition. BeagleLib error code was %d (%s)") % code % _beagle_error[code]));
+
+    code = _model->setBeagleAmongSiteRateVariationRates(_instance);
+    if (code != 0)
+        throw XStrom(boost::str(boost::format("failed to set among-site rate variation rates. BeagleLib error code was %d (%s)") % code % _beagle_error[code]));
+
+    code = _model->setBeagleAmongSiteRateVariationProbs(_instance);
+    if (code != 0)
+        throw XStrom(boost::str(boost::format("failed to set among-site rate variation weights. BeagleLib error code was %d (%s)") % code % _beagle_error[code]));
     }
 
 inline void Likelihood::defineOperations(typename Tree::SharedPtr t)
