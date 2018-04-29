@@ -7,7 +7,8 @@ strom_SOURCES = main.cpp \
                 data.hpp \
                 split.hpp \
                 tree_summary.hpp \
-                likelihood.hpp
+                likelihood.hpp \
+                strom.hpp
 strom_CPPFLAGS = -std=c++11 -Wall \
                 -I$(HOME)/include/libhmsbeagle-1 \
                 -I$(HOME)/include \
