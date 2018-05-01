@@ -10,7 +10,10 @@ strom_SOURCES = main.cpp \
                 likelihood.hpp \
                 strom.hpp \
                 model.hpp \
-                lot.hpp
+                lot.hpp \
+                gamma_shape_updater.hpp \
+                updater.hpp \
+                chain.hpp
 strom_CPPFLAGS = -std=c++11 -Wall \
                 -I$(HOME)/include/libhmsbeagle-1 \
                 -I$(HOME)/include \

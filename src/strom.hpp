@@ -4,6 +4,9 @@
 #include "tree_summary.hpp"
 #include "data.hpp"
 #include "likelihood.hpp"
+#include "lot.hpp"
+#include "chain.hpp"
+#include "gamma_shape_updater.hpp"
 #include <boost/program_options.hpp>
 
 namespace strom {
@@ -33,6 +36,11 @@ class Strom
         Model::SharedPtr        _model;
         Likelihood::SharedPtr   _likelihood;
         TreeSummary::SharedPtr  _tree_summary;
+        Lot::SharedPtr          _lot;
+
+        unsigned                _random_seed;
+        unsigned                _num_iter;
+        unsigned                _sample_freq;
 
         static std::string      _program_name;
         static unsigned         _major_version;
@@ -59,11 +67,15 @@ inline void Strom::clear()
     _model          = nullptr;
     _likelihood     = nullptr;
     _tree_summary   = nullptr;
+    _lot            = nullptr;
     _expected_log_likelihood = 0.0;
     _gamma_shape = 0.5;
     _num_categ = 1;
     _state_frequencies.resize(0);
     _exchangeabilities.resize(0);
+    _random_seed     = 1;
+    _num_iter        = 1000;
+    _sample_freq     = 1;
     }
 
 inline void Strom::processCommandLineOptions(int argc, const char * argv[])
@@ -73,6 +85,9 @@ inline void Strom::processCommandLineOptions(int argc, const char * argv[])
     desc.add_options()
         ("help,h", "produce help message")
         ("version,v", "show program version")
+        ("seed,z",        boost::program_options::value(&_random_seed)->default_value(1),   "pseudorandom number seed")
+        ("niter,n",       boost::program_options::value(&_num_iter)->default_value(1000),   "number of MCMC iterations")
+        ("samplefreq",  boost::program_options::value(&_sample_freq)->default_value(1),   "skip this many iterations before sampling next")
         ("datafile,d",  boost::program_options::value(&_data_file_name)->required(), "name of data file in NEXUS format")
         ("treefile,t",  boost::program_options::value(&_tree_file_name)->required(), "name of data file in NEXUS format")
         ("expectedLnL", boost::program_options::value(&_expected_log_likelihood)->default_value(0.0), "log likelihood expected")
@@ -147,15 +162,6 @@ inline void Strom::run()
 
         // Create a substitution model
         _model = Model::SharedPtr(new Model());
-
-        // old way
-        //_model->setExchangeabilitiesAndStateFreqs(
-        //    {0.1307058, 0.1583282, 0.1598077, 0.2456609, 0.2202439, 0.08525337},
-        //    {0.2249887, 0.2090694, 0.1375933, 0.4283486});
-        //_model->setGammaShape(1.480126);
-        //_model->setGammaNCateg(4);
-
-        // new way
         _model->setExchangeabilitiesAndStateFreqs(_exchangeabilities, _state_frequencies);
         _model->setGammaShape(_gamma_shape);
         _model->setGammaNCateg(_num_categ);
@@ -171,17 +177,30 @@ inline void Strom::run()
         _tree_summary = TreeSummary::SharedPtr(new TreeSummary());
         _tree_summary->readTreefile(_tree_file_name, 0);
         Tree::SharedPtr tree = _tree_summary->getTree(0);
+        std::string newick = _tree_summary->getNewick(0);
 
         // Calculate the log-likelihood for the tree
         double lnL = _likelihood->calcLogLikelihood(tree);
         std::cout << boost::str(boost::format("log likelihood = %.5f") % lnL) << std::endl;
-
-        // old way
-        //std::cout << "      (expecting -274.59466)" << std::endl;
-
-        // new way
         if (_expected_log_likelihood != 0.0)
             std::cout << boost::str(boost::format("      (expecting %.5f)") % _expected_log_likelihood) << std::endl;
+
+        // Create a Lot object that generates (pseudo)random numbers
+        _lot = Lot::SharedPtr(new Lot);
+        _lot->setSeed(_random_seed);
+
+        // Create a Chain object and take _num_iter steps
+        Chain chain;
+        chain.setLot(_lot);
+        chain.setLikelihood(_likelihood);
+        chain.setTreeFromNewick(newick);
+        chain.start();
+        for (unsigned iteration = 1; iteration <= _num_iter; ++iteration)
+            {
+            chain.nextStep(iteration);
+            }
+        chain.stop();
+
         }
     catch (XStrom & x)
         {
