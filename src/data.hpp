@@ -5,6 +5,7 @@
 #include <vector>
 #include <numeric>
 #include <map>
+#include <regex>
 #include <boost/format.hpp>
 #include "xstrom.hpp"
 
@@ -35,6 +36,9 @@ class Data
         unsigned                                getNumPatterns() const;
         unsigned                                getSeqLen() const;
         unsigned                                getNumTaxa() const;
+
+        std::string                             createTaxaBlock() const;
+        std::string                             createTranslateStatement() const;
 
     private:
 
@@ -245,5 +249,35 @@ inline void Data::getDataFromFile(const std::string filename)
     compressPatterns();
     }
 
+inline std::string Data::createTaxaBlock() const
+    {
+    std::string s = "";
+    s += "begin taxa;\n";
+    s += boost::str(boost::format("  dimensions ntax=%d;\n") % _taxon_names.size());
+    s += "  taxlabels\n";
+    for (auto nm : _taxon_names)
+        {
+        std::string taxon_name = std::regex_replace(nm, std::regex(" "), "_");
+        s += "    " + taxon_name + "\n";
+        }
+    s += "    ;\n";
+    s += "end;\n";
+    return s;
+    }
+
+inline std::string Data::createTranslateStatement() const
+    {
+    std::string s = "";
+    s += "  translate\n";
+    unsigned t = 1;
+    for (auto nm : _taxon_names)
+        {
+        std::string taxon_name = std::regex_replace(nm, std::regex(" "), "_");
+        s += boost::str(boost::format("    %d %s%s\n") % t % taxon_name % (t < _taxon_names.size() ? "," : ""));
+        t++;
+        }
+    s += "  ;\n";
+    return s;
+    }
 
 }

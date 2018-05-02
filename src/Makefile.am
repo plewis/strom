@@ -13,7 +13,8 @@ strom_SOURCES = main.cpp \
                 lot.hpp \
                 gamma_shape_updater.hpp \
                 updater.hpp \
-                chain.hpp
+                chain.hpp \
+                output_manager.hpp
 strom_CPPFLAGS = -std=c++11 -Wall \
                 -I$(HOME)/include/libhmsbeagle-1 \
                 -I$(HOME)/include \

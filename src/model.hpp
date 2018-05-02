@@ -38,6 +38,9 @@ namespace strom
             void                        setStateFreqs(const std::vector<double> & state_frequencies);
             void                        setExchangeabilitiesAndStateFreqs(const std::vector<double> & exchangeabilities, const std::vector<double> & state_frequencies);
 
+            std::string                 paramNamesAsString(std::string sep) const;
+            std::string                 paramValuesAsString(std::string sep) const;
+
             int                         setBeagleEigenDecomposition(int beagle_instance);
             int                         setBeagleStateFrequencies(int beagle_instance);
             int                         setBeagleAmongSiteRateVariationRates(int beagle_instance);
@@ -350,5 +353,19 @@ inline int Model::setBeagleAmongSiteRateVariationProbs(int beagle_instance)
     return code;
     }
 
+inline std::string Model::paramNamesAsString(std::string sep) const
+    {
+    std::string s = "";
+    s += "r(A<->C)" + sep + "r(A<->G)" + sep + "r(A<->T)" + sep + "r(C<->G)" + sep + "r(C<->T)" + sep + "r(G<->T)" + sep;
+    s += "	pi(A)" + sep + "pi(C)" + sep + "pi(G)" + sep + "pi(T)" + sep;
+    s += "alpha";
+    return s;
     }
+
+inline std::string Model::paramValuesAsString(std::string sep) const
+    {
+    return boost::str(boost::format("%.5f%s%.5f%s%.5f%s%.5f%s%.5f%s%.5f%s%.5f%s%.5f%s%.5f%s%.5f%s%.5f") % _exchangeabilities[0] % sep % _exchangeabilities[1] % sep % _exchangeabilities[2] % sep % _exchangeabilities[3] % sep % _exchangeabilities[4] % sep % _exchangeabilities[5] % sep % _state_freqs[0] % sep % _state_freqs[1] % sep % _state_freqs[2] % sep % _state_freqs[3] % sep % _gamma_shape);
+    }
+
+}
 

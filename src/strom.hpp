@@ -8,43 +8,47 @@
 #include "chain.hpp"
 #include "gamma_shape_updater.hpp"
 #include <boost/program_options.hpp>
+#include "output_manager.hpp"
 
 namespace strom {
 
 class Strom
     {
     public:
-                                Strom();
-                                ~Strom();
+                                 Strom();
+                                    ~Strom();
 
-        void                    clear();
-        void                    processCommandLineOptions(int argc, const char * argv[]);
-        void                    run();
+        void                        clear();
+        void                        processCommandLineOptions(int argc, const char * argv[]);
+        void                        run();
 
     private:
 
-        std::string             _data_file_name;
-        std::string             _tree_file_name;
+        std::string                 _data_file_name;
+        std::string                 _tree_file_name;
 
-        double                  _expected_log_likelihood;
-        double                  _gamma_shape;
-        unsigned                _num_categ;
-        std::vector<double>     _state_frequencies;
-        std::vector<double>     _exchangeabilities;
+        double                      _expected_log_likelihood;
+        double                      _gamma_shape;
+        unsigned                    _num_categ;
+        std::vector<double>         _state_frequencies;
+        std::vector<double>         _exchangeabilities;
 
-        Data::SharedPtr         _data;
-        Model::SharedPtr        _model;
-        Likelihood::SharedPtr   _likelihood;
-        TreeSummary::SharedPtr  _tree_summary;
-        Lot::SharedPtr          _lot;
+        Data::SharedPtr             _data;
+        Model::SharedPtr            _model;
+        Likelihood::SharedPtr       _likelihood;
+        TreeSummary::SharedPtr      _tree_summary;
+        Lot::SharedPtr              _lot;
 
-        unsigned                _random_seed;
-        unsigned                _num_iter;
-        unsigned                _sample_freq;
+        unsigned                    _random_seed;
+        unsigned                    _num_iter;
+        unsigned                    _sample_freq;
 
-        static std::string      _program_name;
-        static unsigned         _major_version;
-        static unsigned         _minor_version;
+        void                        sample(unsigned iter, Chain & chain);
+        OutputManager::SharedPtr    _output_manager;
+
+        static std::string          _program_name;
+        static unsigned             _major_version;
+        static unsigned             _minor_version;
 
     };
 
@@ -76,6 +80,7 @@ inline void Strom::clear()
     _random_seed     = 1;
     _num_iter        = 1000;
     _sample_freq     = 1;
+    _output_manager = nullptr;
     }
 
 inline void Strom::processCommandLineOptions(int argc, const char * argv[])
@@ -150,6 +155,19 @@ inline void Strom::processCommandLineOptions(int argc, const char * argv[])
 
     }
 
+inline void Strom::sample(unsigned iteration, Chain & chain)
+    {
+    if (chain.getHeatingPower() == 1 && iteration % _sample_freq == 0)
+        {
+        double logLike = chain.calcLogLikelihood();
+        double logPrior = chain.calcLogJointPrior();
+        double TL = chain.getTreeManip()->calcTreeLength();
+        _output_manager->outputConsole(boost::str(boost::format("%12d %12.5f %12.5f %12.5f") % iteration % logLike % logPrior % TL));
+        _output_manager->outputTree(iteration, chain.getTreeManip());
+        _output_manager->outputParameters(iteration, logLike, logPrior, TL, chain.getModel());
+        }
+    }
+
 inline void Strom::run()
     {
     std::cout << "Starting..." << std::endl;
@@ -165,7 +183,6 @@ inline void Strom::run()
         _model->setExchangeabilitiesAndStateFreqs(_exchangeabilities, _state_frequencies);
         _model->setGammaShape(_gamma_shape);
         _model->setGammaNCateg(_num_categ);
-
         std::cout << _model->describeModel() << std::endl;
 
         // Create a Likelihood object that will compute log-likelihoods
@@ -189,17 +206,29 @@ inline void Strom::run()
         _lot = Lot::SharedPtr(new Lot);
         _lot->setSeed(_random_seed);
 
+        // Create an output manager and open output files
+        _output_manager.reset(new OutputManager);
+        _output_manager->outputConsole(boost::str(boost::format("\n%12s %12s %12s %12s") % "iteration" % "logLike" % "logPrior" % "TL"));
+        _output_manager->openTreeFile("trees.tre", _data);
+        _output_manager->openParameterFile("params.txt", _likelihood->getModel());
+
         // Create a Chain object and take _num_iter steps
         Chain chain;
         chain.setLot(_lot);
         chain.setLikelihood(_likelihood);
         chain.setTreeFromNewick(newick);
         chain.start();
+        sample(0, chain);
         for (unsigned iteration = 1; iteration <= _num_iter; ++iteration)
             {
             chain.nextStep(iteration);
+            sample(iteration, chain);
             }
         chain.stop();
+
+        // Close output files
+        _output_manager->closeTreeFile();
+        _output_manager->closeParameterFile();
 
         }
     catch (XStrom & x)

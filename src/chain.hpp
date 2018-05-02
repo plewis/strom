@@ -263,19 +263,19 @@ inline void Chain::start()
     _log_likelihood = calcLogLikelihood();
 
     // Output column headers and first line of output showing starting state (iteration 0)
-    std::cout << boost::str(boost::format("%12s %12s %12s %12s %12s\n")
-        % "iteration"
-        % "lnLike"
-        % "lnPrior"
-        % "shape"
-        % "accept");
-    double lnP = calcLogJointPrior();
-    std::cout << boost::str(boost::format("%12d %12.5f %12.5f %12.5f %12s\n")
-        % 0
-        % _log_likelihood
-        % lnP
-        % _shape_updater->getCurrentPoint()
-        % "---");
+    // std::cout << boost::str(boost::format("%12s %12s %12s %12s %12s\n")
+    //     % "iteration"
+    //     % "lnLike"
+    //     % "lnPrior"
+    //     % "shape"
+    //     % "accept");
+    // double lnP = calcLogJointPrior();
+    // std::cout << boost::str(boost::format("%12d %12.5f %12.5f %12.5f %12s\n")
+    //     % 0
+    //     % _log_likelihood
+    //     % lnP
+    //     % _shape_updater->getCurrentPoint()
+    //     % "---");
     }
 
 inline void Chain::stop()
@@ -299,7 +299,7 @@ inline double Chain::calcLogJointPrior() const
 
 inline void Chain::nextStep(int iteration)
     {
-    Model::SharedPtr model = _likelihood->getModel();
+    Model::SharedPtr model = getModel();
     if (model->getGammaNCateg() > 1)
         _log_likelihood = _shape_updater->update(_log_likelihood);
     //_log_likelihood = _statefreq_updater->update(_log_likelihood);
@@ -307,14 +307,14 @@ inline void Chain::nextStep(int iteration)
     //_log_likelihood = _tree_updater->update(_log_likelihood);
     //_log_likelihood = _tree_length_updater->update(_log_likelihood);
 
-    double log_prior = calcLogJointPrior();
-
-    std::cout << boost::str(boost::format("%12d %12.5f %12.5f %12.5f %12.1f\n")
-        % iteration
-        % _log_likelihood
-        % log_prior
-        % _shape_updater->getCurrentPoint()
-        % _shape_updater->getAcceptPct());
+    // double log_prior = calcLogJointPrior();
+    //
+    // std::cout << boost::str(boost::format("%12d %12.5f %12.5f %12.5f %12.1f\n")
+    //     % iteration
+    //     % _log_likelihood
+    //     % log_prior
+    //     % _shape_updater->getCurrentPoint()
+    //     % _shape_updater->getAcceptPct());
     }
 
 }
