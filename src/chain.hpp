@@ -10,9 +10,8 @@
 #include "gamma_shape_updater.hpp"
 #include "statefreq_updater.hpp"
 #include "exchangeability_updater.hpp"
-//#include "tree_updater.hpp"
-//#include "tree_length_updater.hpp"
-//#include "output_manager.hpp"
+#include "tree_updater.hpp"
+#include "tree_length_updater.hpp"
 
 namespace strom
     {
@@ -68,8 +67,8 @@ namespace strom
             GammaShapeUpdater::SharedPtr        _shape_updater;
             StateFreqUpdater::SharedPtr         _statefreq_updater;
             ExchangeabilityUpdater::SharedPtr   _exchangeability_updater;
-            //TreeUpdater::SharedPtr              _tree_updater;
-            //TreeLengthUpdater::SharedPtr         _tree_length_updater;
+            TreeUpdater::SharedPtr              _tree_updater;
+            TreeLengthUpdater::SharedPtr        _tree_length_updater;
 
             unsigned                            _chain_index;
             double                              _heating_power;
@@ -103,8 +102,8 @@ inline void Chain::setHeatingPower(double p)
     _shape_updater->setHeatingPower(p);
     _statefreq_updater->setHeatingPower(p);
     _exchangeability_updater->setHeatingPower(p);
-    //_tree_updater->setHeatingPower(p);
-    //_tree_length_updater->setHeatingPower(p);
+    _tree_updater->setHeatingPower(p);
+    _tree_length_updater->setHeatingPower(p);
     }
 
 inline double Chain::getHeatingPower() const
@@ -128,8 +127,8 @@ inline std::vector<std::string> Chain::getUpdaterNames() const
     v.push_back(_shape_updater->getUpdaterName());
     v.push_back(_statefreq_updater->getUpdaterName());
     v.push_back(_exchangeability_updater->getUpdaterName());
-    //v.push_back(_tree_updater->getUpdaterName());
-    //v.push_back(_tree_length_updater->getUpdaterName());
+    v.push_back(_tree_updater->getUpdaterName());
+    v.push_back(_tree_length_updater->getUpdaterName());
     return v;
     }
 
@@ -139,8 +138,8 @@ inline std::vector<double> Chain::getAcceptPercentages() const
     v.push_back(_shape_updater->getAcceptPct());
     v.push_back(_statefreq_updater->getAcceptPct());
     v.push_back(_exchangeability_updater->getAcceptPct());
-    //v.push_back(_tree_updater->getAcceptPct());
-    //v.push_back(_tree_length_updater->getAcceptPct());
+    v.push_back(_tree_updater->getAcceptPct());
+    v.push_back(_tree_length_updater->getAcceptPct());
     return v;
     }
 
@@ -150,19 +149,19 @@ inline std::vector<double> Chain::getLambdas() const
     v.push_back(_shape_updater->getLambda());
     v.push_back(_statefreq_updater->getLambda());
     v.push_back(_exchangeability_updater->getLambda());
-    //v.push_back(_tree_updater->getLambda());
-    //v.push_back(_tree_length_updater->getLambda());
+    v.push_back(_tree_updater->getLambda());
+    v.push_back(_tree_length_updater->getLambda());
     return v;
     }
 
 inline void Chain::setLambdas(std::vector<double> & v)
     {
-    assert(v.size() >= 3);
+    assert(v.size() >= 4);
     _shape_updater->setLambda(v[0]);
     _statefreq_updater->setLambda(v[1]);
     _exchangeability_updater->setLambda(v[2]);
-    //_tree_updater->setLambda(v[3]);
-    //_tree_length_updater->setLambda(v[3]);
+    _tree_updater->setLambda(v[3]);
+    _tree_length_updater->setLambda(v[3]);
     }
 
 inline void Chain::startTuning()
@@ -170,8 +169,8 @@ inline void Chain::startTuning()
     _shape_updater->setTuning(true);
     _statefreq_updater->setTuning(true);
     _exchangeability_updater->setTuning(true);
-    //_tree_updater->setTuning(true);
-    //_tree_length_updater->setTuning(true);
+    _tree_updater->setTuning(true);
+    _tree_length_updater->setTuning(true);
     }
 
 inline void Chain::stopTuning()
@@ -179,8 +178,8 @@ inline void Chain::stopTuning()
     _shape_updater->setTuning(false);
     _statefreq_updater->setTuning(false);
     _exchangeability_updater->setTuning(false);
-    //_tree_updater->setTuning(false);
-    //_tree_length_updater->setTuning(false);
+    _tree_updater->setTuning(false);
+    _tree_length_updater->setTuning(false);
     }
 
 inline void Chain::setTreeFromNewick(std::string & newick)
@@ -192,8 +191,8 @@ inline void Chain::setTreeFromNewick(std::string & newick)
     _shape_updater->setTreeManip(_tree_manipulator);
     _statefreq_updater->setTreeManip(_tree_manipulator);
     _exchangeability_updater->setTreeManip(_tree_manipulator);
-    //_tree_updater->setTreeManip(_tree_manipulator);
-    //_tree_length_updater->setTreeManip(_tree_manipulator);
+    _tree_updater->setTreeManip(_tree_manipulator);
+    _tree_length_updater->setTreeManip(_tree_manipulator);
     }
 
 inline void Chain::setLikelihood(typename Likelihood::SharedPtr likelihood)
@@ -202,8 +201,8 @@ inline void Chain::setLikelihood(typename Likelihood::SharedPtr likelihood)
     _shape_updater->setLikelihood(likelihood);
     _statefreq_updater->setLikelihood(likelihood);
     _exchangeability_updater->setLikelihood(likelihood);
-    //_tree_updater->setLikelihood(likelihood);
-    //_tree_length_updater->setLikelihood(likelihood);
+    _tree_updater->setLikelihood(likelihood);
+    _tree_length_updater->setLikelihood(likelihood);
     }
 
 inline void Chain::setLot(typename Lot::SharedPtr lot)
@@ -211,8 +210,8 @@ inline void Chain::setLot(typename Lot::SharedPtr lot)
     _shape_updater->setLot(lot);
     _statefreq_updater->setLot(lot);
     _exchangeability_updater->setLot(lot);
-    //_tree_updater->setLot(lot);
-    //_tree_length_updater->setLot(lot);
+    _tree_updater->setLot(lot);
+    _tree_length_updater->setLot(lot);
     }
 
 inline void Chain::clear()
@@ -234,19 +233,19 @@ inline void Chain::clear()
     _exchangeability_updater->setTargetAcceptanceRate(0.3);
     _exchangeability_updater->setPriorParameters({1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
 
-    //double tree_length_shape = 1.0;
-    //double tree_length_scale = 10.0;
-    //double dirichlet_param   = 1.0;
+    double tree_length_shape = 1.0;
+    double tree_length_scale = 10.0;
+    double dirichlet_param   = 1.0;
 
-    //_tree_updater.reset(new TreeUpdater);
-    //_tree_updater->setLambda(0.2);
-    //_tree_updater->setTargetAcceptanceRate(0.3);
-    //_tree_updater->setPriorParameters({tree_length_shape, tree_length_scale, dirichlet_param});
+    _tree_updater.reset(new TreeUpdater);
+    _tree_updater->setLambda(0.2);
+    _tree_updater->setTargetAcceptanceRate(0.3);
+    _tree_updater->setPriorParameters({tree_length_shape, tree_length_scale, dirichlet_param});
 
-    //_tree_length_updater.reset(new TreeLengthUpdater);
-    //_tree_length_updater->setLambda(0.2);
-    //_tree_length_updater->setTargetAcceptanceRate(0.3);
-    //_tree_length_updater->setPriorParameters({tree_length_shape, tree_length_scale, dirichlet_param});
+    _tree_length_updater.reset(new TreeLengthUpdater);
+    _tree_length_updater->setLambda(0.2);
+    _tree_length_updater->setTargetAcceptanceRate(0.3);
+    _tree_length_updater->setPriorParameters({tree_length_shape, tree_length_scale, dirichlet_param});
 
     _chain_index = 0;
     setHeatingPower(1.0);
@@ -258,8 +257,8 @@ inline void Chain::start()
     _shape_updater->pullCurrentStateFromModel();
     _statefreq_updater->pullCurrentStateFromModel();
     _exchangeability_updater->pullCurrentStateFromModel();
-    //_tree_updater->pullCurrentStateFromModel();
-    //_tree_length_updater->pullCurrentStateFromModel();
+    _tree_updater->pullCurrentStateFromModel();
+    _tree_length_updater->pullCurrentStateFromModel();
     _log_likelihood = calcLogLikelihood();
     }
 
@@ -278,7 +277,7 @@ inline double Chain::calcLogJointPrior() const
     lnP += _shape_updater->calcLogPrior();
     lnP += _statefreq_updater->calcLogPrior();
     lnP += _exchangeability_updater->calcLogPrior();
-    //lnP += _tree_updater->calcLogPrior();
+    lnP += _tree_updater->calcLogPrior();
     //lnP += _tree_length_updater->calcLogPrior();
     return lnP;
     }
@@ -290,8 +289,8 @@ inline void Chain::nextStep(int iteration)
         _log_likelihood = _shape_updater->update(_log_likelihood);
     _log_likelihood = _statefreq_updater->update(_log_likelihood);
     _log_likelihood = _exchangeability_updater->update(_log_likelihood);
-    //_log_likelihood = _tree_updater->update(_log_likelihood);
-    //_log_likelihood = _tree_length_updater->update(_log_likelihood);
+    _log_likelihood = _tree_updater->update(_log_likelihood);
+    _log_likelihood = _tree_length_updater->update(_log_likelihood);
     }
 
 }

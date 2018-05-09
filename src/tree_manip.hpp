@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <cassert>
 #include <memory>
 #include <stack>
@@ -32,6 +33,9 @@ namespace strom
             void                        buildFromNewick(const std::string newick, bool rooted, bool allow_polytomies);
             void                        storeSplits(std::set<Split> & splitset);
             void                        rerootAt(int node_index);
+
+            void                        nniNodeSwap(Node * a, Node * b);
+            Node *                      randomInternalEdge(double uniform01);
 
         private:
 
@@ -953,6 +957,117 @@ inline void TreeManip::storeSplits(std::set<Split> & splitset)
             nd->_parent->_split.addSplit(nd->_split);
             }
         }
+    }
+
+inline Node * TreeManip::randomInternalEdge(double uniform_deviate)
+    {
+    assert(uniform_deviate >= 0.0);
+    assert(uniform_deviate < 1.0);
+
+    // Unrooted case:                        Rooted case:
+    //
+    // 2     3     4     5                   1     2     3     4
+    //  \   /     /     /                     \   /     /     /
+    //   \ /     /     /                       \ /     /     /
+    //    8     /     /                         7     /     /
+    //     \   /     /                           \   /     /
+    //      \ /     /                             \ /     /
+    //       7     /                               6     /
+    //        \   /                                 \   /
+    //         \ /                                   \ /
+    //          6   nleaves = 5                       5   nleaves = 4
+    //          |   num_internal_edges = 2            |   num_internal_edges = 2
+    //          |   choose node 7 or node 8           |   choose node 6 or node 7
+    //          1                                    root
+    //
+    // _preorder = [6, 7, 8, 2, 3, 4, 5]     _preorder = [5, 6, 7, 1, 2, 3, 4]
+    //
+    // Note: _preorder is actually a vector of T *, but is shown here as a
+    // vector of integers solely to illustrate the algorithm below
+
+    unsigned num_internal_edges = _tree->_nleaves - 2 - (_tree->_is_rooted ? 0 : 1);
+
+    // Add one to skip first node in _preorder vector, which is an internal node whose edge
+    // is either a terminal edge (if tree is unrooted) or invalid (if tree is rooted)
+    unsigned index_of_chosen = 1 + (unsigned)std::floor(uniform_deviate*num_internal_edges);
+
+    unsigned internal_nodes_visited = 0;
+    Node * chosen_node = 0;
+    for (auto nd : _tree->_preorder)
+        {
+        if (nd->_left_child)
+            {
+            if (internal_nodes_visited == index_of_chosen)
+                {
+                chosen_node = nd;
+                break;
+                }
+            else
+                ++internal_nodes_visited;
+            }
+        }
+    assert(chosen_node);
+    return chosen_node;
+    }
+
+inline void TreeManip::nniNodeSwap(Node * a, Node * b)
+    {
+    //     a                  b
+    //      \   /              \   /
+    //       \ /                \ /
+    //        x     b            x     a
+    //         \   /              \   /
+    //          \ /      ==>       \ /
+    //           y                  y
+    //           |                  |
+    //           |                  |
+    //
+    Node * x = a->_parent;
+    assert(x);
+
+    Node * y = b->_parent;
+    assert(y);
+
+    assert(y == x->_parent);
+
+    // Detach a from tree
+    if (a->_right_sib)
+        {
+        x->_left_child = a->_right_sib;
+        a->_parent = 0;
+        a->_right_sib = 0;
+        }
+    else
+        {
+        x->_left_child->_right_sib = 0;
+        a->_parent = 0;
+        }
+
+    // Detach b from tree
+    if (b == x->_right_sib)
+        {
+        x->_right_sib = 0;
+        b->_parent = 0;
+        }
+    else
+        {
+        y->_left_child = x;
+        b->_right_sib = 0;
+        b->_parent = 0;
+        }
+
+    // Reattach a to y
+    assert(!x->_right_sib);
+    x->_right_sib = a;
+    a->_parent = y;
+
+    // Reattach b to x
+    assert(!x->_left_child->_right_sib);
+    x->_left_child->_right_sib = b;
+    b->_parent = x;
+
+    refreshPreorder();
+    refreshLevelorder();
     }
 
 }
