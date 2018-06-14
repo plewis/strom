@@ -5,8 +5,12 @@
 #include "data.hpp"
 #include "likelihood.hpp"
 #include "lot.hpp"
-#include "chain.hpp"
-#include "gamma_shape_updater.hpp"
+#if 1
+#   include "pwk.hpp"
+#else
+#   include "chain.hpp"
+#   include "gamma_shape_updater.hpp"
+#endif
 #include <boost/program_options.hpp>
 #include "output_manager.hpp"
 
@@ -467,7 +471,7 @@ inline void Strom::run()
         _data = Data::SharedPtr(new Data());
         _data->getDataFromFile(_data_file_name);
 
-        // Read in a tree
+        // Read in trees
         _tree_summary = TreeSummary::SharedPtr(new TreeSummary());
         _tree_summary->readTreefile(_tree_file_name, 0);
 
@@ -475,6 +479,10 @@ inline void Strom::run()
         _lot = Lot::SharedPtr(new Lot);
         _lot->setSeed(_random_seed);
 
+#if 1
+        PWK pwk(_lot, _tree_summary);
+        pwk.logMarginalLikelihood();
+#else
         // Create  Chain objects
         initChains();
 
@@ -512,7 +520,7 @@ inline void Strom::run()
         // Close output files
         _output_manager->closeTreeFile();
         _output_manager->closeParameterFile();
-
+#endif
         }
     catch (XStrom & x)
         {

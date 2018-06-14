@@ -19,7 +19,8 @@ strom_SOURCES = main.cpp \
                 statefreq_updater.hpp \
                 exchangeability_updater.hpp \
                 tree_updater.hpp \
-                tree_length_updater.hpp
+                tree_length_updater.hpp \
+                pwk.hpp
 strom_CPPFLAGS = -std=c++11 -Wall \
                 -I$(HOME)/include/libhmsbeagle-1 \
                 -I$(HOME)/include \

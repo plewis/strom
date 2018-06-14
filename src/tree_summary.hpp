@@ -25,7 +25,9 @@ namespace strom
 
             void                        readTreefile(const std::string filename, unsigned skip);
             void                        showSummary() const;
-            typename Tree::SharedPtr    getTree(unsigned index);
+            unsigned                    getNumStoredTrees() const;  //POLPWK
+            void                        sortTrees(sorted_vect_t & sorted_trees) const; //POLPWK
+            Tree::SharedPtr             getTree(unsigned index);
             std::string                 getNewick(unsigned index);
             void                        clear();
 
@@ -36,7 +38,9 @@ namespace strom
 
         public:
 
-            typedef std::shared_ptr< TreeSummary > SharedPtr;
+            typedef std::shared_ptr< TreeSummary >      SharedPtr;
+            typedef std::pair<unsigned,Split::treeid_t> sorted_pair_t;  //POLPWK
+            typedef std::vector<sorted_pair_t>          sorted_vect_t;  //POLPWK
         };
 
 inline TreeSummary::TreeSummary()
@@ -47,6 +51,24 @@ inline TreeSummary::TreeSummary()
 inline TreeSummary::~TreeSummary()
     {
     //std::cout << "Destroying a TreeSummary" << std::endl;
+    }
+
+inline unsigned TreeSummary::getNumStoredTrees() const  //POLPWK
+    {
+    return (unsigned)_newicks.size();
+    }
+
+inline void TreeSummary::sortTrees(sorted_vect_t & sorted_trees) const  //POLPWK
+    {
+    // Fill sorted vector with (ntrees,treeID) pairs
+    for (auto & key_value_pair : _treeIDs)
+        {
+        unsigned ntrees = (unsigned)key_value_pair.second.size();
+        sorted_trees.push_back(sorted_pair_t(ntrees,key_value_pair.first));
+        }
+
+    // Sort so that treeID with most sampled trees is last
+    std::sort(sorted_trees.begin(), sorted_trees.end());
     }
 
 inline Tree::SharedPtr TreeSummary::getTree(unsigned index)
