@@ -22,6 +22,7 @@ class Strom
 
         std::string            _data_file_name;
         std::string            _tree_file_name;
+        unsigned               _tree_to_plot;
 
         Data::SharedPtr        _data;
         Likelihood::SharedPtr   _likelihood;
@@ -48,6 +49,7 @@ inline void Strom::clear()
     {
     _data_file_name = "";
     _tree_file_name = "";
+    _tree_to_plot = 0;
     _data           = nullptr;
     _likelihood     = nullptr;
     _tree_summary   = nullptr;
@@ -60,8 +62,9 @@ inline void Strom::processCommandLineOptions(int argc, const char * argv[])
     desc.add_options()
         ("help,h", "produce help message")
         ("version,v", "show program version")
-        ("datafile,d",  boost::program_options::value(&_data_file_name)->required(), "name of data file in NEXUS format")
-        ("treefile,t",  boost::program_options::value(&_tree_file_name)->required(), "name of data file in NEXUS format")
+        //("datafile,d",  boost::program_options::value(&_data_file_name)->required(), "name of data file in NEXUS format")
+        ("treefile,t",  boost::program_options::value(&_tree_file_name)->required(), "name of tree file in NEXUS format")
+        ("plot",  boost::program_options::value(&_tree_to_plot), "number of tree to plot")
         ;
     boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
     try
@@ -88,6 +91,16 @@ inline void Strom::processCommandLineOptions(int argc, const char * argv[])
         std::cout << boost::str(boost::format("This is %s version %d.%d") % _program_name % _major_version % _minor_version) << std::endl;
         std::exit(1);
         }
+
+    // If user specified --plot on command line, check to make sure it is valid
+    if (vm.count("plot") > 0)
+        {
+        if (_tree_to_plot == 0)
+            {
+            std::cout << "plot must be greater than zero" << std::endl;
+            std::exit(1);
+            }
+        }
     }
 
 inline void Strom::run()
@@ -97,22 +110,24 @@ inline void Strom::run()
     try
         {
         // Read and store data
-        _data = Data::SharedPtr(new Data());
-        _data->getDataFromFile(_data_file_name);
+        //_data = Data::SharedPtr(new Data());
+        //_data->getDataFromFile(_data_file_name);
 
         // Create a Likelihood object that will compute log-likelihoods
-        _likelihood = Likelihood::SharedPtr(new Likelihood());
-        _likelihood->setData(_data);
+        //_likelihood = Likelihood::SharedPtr(new Likelihood());
+        //_likelihood->setData(_data);
 
-        // Read in a tree
+        // Read in trees
         _tree_summary = TreeSummary::SharedPtr(new TreeSummary());
-        _tree_summary->readTreefile(_tree_file_name, 0);
-        Tree::SharedPtr tree = _tree_summary->getTree(0);
+        _tree_summary->readTreefile(_tree_file_name, 0, _tree_to_plot);
+        _tree_summary->showSummary(_tree_to_plot);
+
+        //Tree::SharedPtr tree = _tree_summary->getTree(0);
 
         // Calculate the log-likelihood for the tree
-        double lnL = _likelihood->calcLogLikelihood(tree);
-        std::cout << boost::str(boost::format("log likelihood = %.5f") % lnL) << std::endl;
-        std::cout << "      (expecting -286.9238)" << std::endl;
+        //double lnL = _likelihood->calcLogLikelihood(tree);
+        //std::cout << boost::str(boost::format("log likelihood = %.5f") % lnL) << std::endl;
+        //std::cout << "      (expecting -286.9238)" << std::endl;
         }
     catch (XStrom & x)
         {

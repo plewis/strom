@@ -23,14 +23,15 @@ namespace strom
                                         TreeSummary();
                                         ~TreeSummary();
 
-            void                        readTreefile(const std::string filename, unsigned skip);
-            void                        showSummary() const;
+            void                        readTreefile(const std::string filename, unsigned skip, unsigned tree_to_plot);
+            void                        showSummary(unsigned tree_to_plot) const;
             typename Tree::SharedPtr    getTree(unsigned index);
             std::string                 getNewick(unsigned index);
             void                        clear();
 
         private:
 
+            Split::treeid_t             _plotted;
             Split::treemap_t            _treeIDs;
             std::vector<std::string>    _newicks;
 
@@ -76,7 +77,7 @@ inline void TreeSummary::clear()
     _newicks.clear();
     }
 
-inline void TreeSummary::readTreefile(const std::string filename, unsigned skip)
+inline void TreeSummary::readTreefile(const std::string filename, unsigned skip, unsigned tree_to_plot)
     {
     TreeManip tm;
     Split::treeid_t splitset;
@@ -121,24 +122,32 @@ inline void TreeSummary::readTreefile(const std::string filename, unsigned skip)
                     tm.buildFromNewick(newick, false, false);
 
                     // store set of splits
-                    splitset.clear();
-                    tm.storeSplits(splitset);
-
-                    // iterator iter will point to the value corresponding to key splitset
-                    // or to end (if splitset is not already a key in the map)
-                    Split::treemap_t::iterator iter = _treeIDs.lower_bound(splitset);
-
-                    if (iter == _treeIDs.end() || iter->first != splitset)
+                    if (t == tree_to_plot - 1)
                         {
-                        // splitset key not found in map, need to create an entry
-                        std::vector<unsigned> v(1, tree_index);  // vector of length 1 with only element set to tree_index
-                        _treeIDs.insert(iter, Split::treemap_t::value_type(splitset, v));
+                        splitset.clear();
+                        tm.storeSplits(splitset);
+
+                        // iterator iter will point to the value corresponding to key splitset
+                        // or to end (if splitset is not already a key in the map)
+                        Split::treemap_t::iterator iter = _treeIDs.lower_bound(splitset);
+
+                        if (iter == _treeIDs.end() || iter->first != splitset)
+                            {
+                            // splitset key not found in map, need to create an entry
+                            std::vector<unsigned> v(1, tree_index);  // vector of length 1 with only element set to tree_index
+                            _treeIDs.insert(iter, Split::treemap_t::value_type(splitset, v));
+                            }
+                        else
+                            {
+                            // splitset key was found in map, need to add this tree's index to vector
+                            iter->second.push_back(tree_index);
+                            }
                         }
                     else
                         {
-                        // splitset key was found in map, need to add this tree's index to vector
-                        iter->second.push_back(tree_index);
+                        tm.storeSplits(_plotted);
                         }
+
                     } // trees loop
                 } // if skip < ntrees
             } // TREES block loop
@@ -148,7 +157,7 @@ inline void TreeSummary::readTreefile(const std::string filename, unsigned skip)
     nexusReader.DeleteBlocksFromFactories();
     }
 
-inline void TreeSummary::showSummary() const
+inline void TreeSummary::showSummary(unsigned tree_to_plot) const
     {
     // Produce some output to show that it works
     std::cout << boost::str(boost::format("\nRead %d trees from file") % _newicks.size()) << std::endl;
@@ -157,28 +166,77 @@ inline void TreeSummary::showSummary() const
     // Also create a map that can be used to sort topologies by their sample frequency
     typedef std::pair<unsigned, unsigned> sorted_pair_t;
     std::vector< sorted_pair_t > sorted;
+    typedef std::map<Split, unsigned> clademap_t;
+    clademap_t clademap;
     int t = 0;
     for (auto & key_value_pair : _treeIDs)
         {
         unsigned topology = ++t;
+        if (topology == tree_to_plot)
+            continue;
+
+        // key_value_pair.first is a so-called tree ID; a set of all splits in the tree
+        const Split::treeid_t & splitset = key_value_pair.first;
+
+        // clademap is a map in which keys are splits and values are frequencies
+        for (auto & s : splitset)
+            {
+            clademap_t::iterator lowb = clademap.lower_bound(s);
+            if (lowb != clademap.end() && !(clademap.key_comp()(s, lowb->first)))
+                {
+                // this pattern has already been seen
+                lowb->second += 1;
+                }
+            else
+                {
+                // this pattern has not yet been seen
+                clademap.insert(lowb, clademap_t::value_type(s, 1));
+                }
+            }
+
+        // key_value_pair.second is a vector of tree indices (of all trees having the same topology)
         unsigned ntrees = (unsigned)key_value_pair.second.size();
+
+        // sorted vector holds tuples (n,t), where t is the index of a tree topology and
+        // n is the number of trees in the file with topology t
         sorted.push_back(std::pair<unsigned, unsigned>(ntrees,topology));
         std::cout << "Topology " << topology << " seen in these " << ntrees << " trees:" << std::endl << "  ";
         std::copy(key_value_pair.second.begin(), key_value_pair.second.end(), std::ostream_iterator<unsigned>(std::cout, " "));
         std::cout << std::endl;
         }
 
-    // Show sorted histogram data
+    // Show tree topologies sorted from most to least frequent
     std::sort(sorted.begin(), sorted.end());
     //unsigned npairs = (unsigned)sorted.size();
+    t = 0;
     std::cout << "\nTopologies sorted by sample frequency:" << std::endl;
     std::cout << boost::str(boost::format("%20s %20s") % "topology" % "frequency") << std::endl;
     for (auto & ntrees_topol_pair : boost::adaptors::reverse(sorted))
         {
-        unsigned n = ntrees_topol_pair.first;
-        unsigned t = ntrees_topol_pair.second;
-        std::cout << boost::str(boost::format("%20d %20d") % t % n) << std::endl;
+        if (++t != tree_to_plot)
+            {
+            unsigned n = ntrees_topol_pair.first;
+            unsigned t = ntrees_topol_pair.second;
+            std::cout << boost::str(boost::format("%20d %20d") % t % n) << std::endl;
+            }
+        }
+
+    // Show support for clades in the tree_to_plot
+    std::cout << boost::str(boost::format("\nSupport for the %d splits in tree number %d") % _plotted.size() % tree_to_plot) << std::endl;
+    std::cout << boost::str(boost::format("%20s %s") % "frequency" % "split") << std::endl;
+    for (auto & s : _plotted)
+        {
+        clademap_t::iterator lowb = clademap.lower_bound(s);
+        if (lowb != clademap.end())
+            {
+            unsigned n = lowb->second;
+            std::cout << boost::str(boost::format("%20d %s") % n % s.createPatternRepresentation()) << std::endl;
+            }
+//         else
+//             {
+//             std::cout << boost::str(boost::format("%20s %s") % "null" % s.createPatternRepresentation()) << std::endl;
+//             }
         }
     }
 
-    }
+}

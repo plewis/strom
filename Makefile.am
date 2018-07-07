@@ -1,4 +1,2 @@
 SUBDIRS = src
-dist_doc_DATA = rbcl738.nex \
-                rbcl738nj.tre \
-                paup.nex
+dist_doc_DATA = 37ML_trees.nex
