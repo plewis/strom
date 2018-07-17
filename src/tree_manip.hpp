@@ -8,6 +8,7 @@
 #include <set>
 #include <regex>
 #include <boost/range/adaptor/reversed.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include "tree.hpp"
 #include "xstrom.hpp"
 
@@ -28,10 +29,13 @@ namespace strom
             void                        createTestTree();
             void                        clear();
 
-            std::string                 makeNewick(unsigned precision) const;
+            std::string                 makeNewickNumbers(unsigned precision) const;
+            std::string                 makeNewickNames(unsigned precision, const std::vector<std::string> & taxon_names) const;
             void                        buildFromNewick(const std::string newick, bool rooted, bool allow_polytomies);
             void                        storeSplits(std::set<Split> & splitset);
             void                        rerootAt(int node_index);
+            
+            Node *                      findNodeWithSplit(const Split & s);
 
         private:
 
@@ -194,11 +198,19 @@ inline void TreeManip::createTestTree()
     _tree->_levelorder.push_back(second_leaf);
 }
 
-inline std::string TreeManip::makeNewick(unsigned precision) const
-	{
+inline std::string TreeManip::makeNewickNumbers(unsigned precision) const
+    {
+    std::vector<std::string> empty_names;
+    return makeNewickNames(precision, empty_names);
+    }
+    
+inline std::string TreeManip::makeNewickNames(unsigned precision, const std::vector<std::string> & taxon_names) const
+    {
+    bool using_names = (taxon_names.size() > 0);
     std::string newick;
-    const boost::format tip_node_format( boost::str(boost::format("%%d:%%.%df") % precision) );
-    const boost::format internal_node_format( boost::str(boost::format("):%%.%df") % precision) );
+    const boost::format names_tip_node_format( boost::str(boost::format("%%s:%%.%df") % precision) );
+    const boost::format numbers_tip_node_format( boost::str(boost::format("%%d:%%.%df") % precision) );
+    const boost::format internal_node_format( boost::str(boost::format("):%%.%df%%s") % precision) );
     std::stack<Node *> node_stack;
 
     Node * root_tip = (_tree->_is_rooted ? 0 : _tree->_root);
@@ -210,14 +222,26 @@ inline std::string TreeManip::makeNewick(unsigned precision) const
             node_stack.push(nd);
             if (root_tip)
                 {
-                newick += boost::str(boost::format(tip_node_format) % (root_tip->_number + 1) % nd->_edge_length);
+                if (using_names) {
+                    std::string nm = taxon_names[root_tip->_number];
+                    boost::replace_all(nm, " ", "_");
+                    newick += boost::str(boost::format(names_tip_node_format) % nm % nd->_edge_length);
+                    }
+                else
+                    newick += boost::str(boost::format(numbers_tip_node_format) % (root_tip->_number + 1) % nd->_edge_length);
                 newick += ",";
                 root_tip = 0;
                 }
             }
         else
             {
-            newick += boost::str(boost::format(tip_node_format) % (nd->_number + 1) % nd->_edge_length);
+            if (using_names) {
+                std::string nm = taxon_names[nd->_number];
+                boost::replace_all(nm, " ", "_");
+                newick += boost::str(boost::format(names_tip_node_format) % nm % nd->_edge_length);
+                }
+            else
+                newick += boost::str(boost::format(numbers_tip_node_format) % (nd->_number + 1) % nd->_edge_length);
             if (nd->_right_sib)
                 newick += ",";
             else
@@ -233,14 +257,16 @@ inline std::string TreeManip::makeNewick(unsigned precision) const
                         }
                     else
                         {
-                        newick += boost::str(boost::format(internal_node_format) % popped->_edge_length);
+                        std::string splitinfo = popped->getSplitInfo();
+                        newick += boost::str(boost::format(internal_node_format) % popped->_edge_length % splitinfo);
                         popped = node_stack.top();
                         }
                     }
                 if (popped && popped->_right_sib)
                     {
                     node_stack.pop();
-                    newick += boost::str(boost::format(internal_node_format) % popped->_edge_length);
+                    std::string splitinfo = popped->getSplitInfo();
+                    newick += boost::str(boost::format(internal_node_format) % popped->_edge_length % splitinfo);
                     newick += ",";
                     }
                 }
@@ -248,6 +274,20 @@ inline std::string TreeManip::makeNewick(unsigned precision) const
         }
 
     return newick;
+    }
+    
+inline Node * TreeManip::findNodeWithSplit(const Split & s)
+    {
+    Node * it = 0;
+    for (auto nd : _tree->_preorder)
+        {
+        if (nd->_split == s)
+            {
+            it = nd;
+            break;
+            }
+        }
+    return it;
     }
 
 inline void TreeManip::extractNodeNumberFromName(Node * nd, std::set<unsigned> & used)
@@ -649,7 +689,7 @@ inline void TreeManip::buildFromNewick(const std::string newick, bool rooted, bo
     _tree->_is_rooted = rooted;
 
     std::set<unsigned> used; // used to ensure that two tips do not have the same number
-    unsigned curr_leaf = 0;
+    //unsigned curr_leaf = 0;
 
     std::string commentless_newick = newick;
     stripOutNexusComments(commentless_newick);
@@ -732,7 +772,7 @@ inline void TreeManip::buildFromNewick(const std::string newick, bool rooted, bo
                     if (!nd->_left_child)
                         {
                         extractNodeNumberFromName(nd, used);
-                        curr_leaf++;
+                        //curr_leaf++;
                         if (!first_tip)
                             first_tip = nd;
                         }
@@ -761,7 +801,7 @@ inline void TreeManip::buildFromNewick(const std::string newick, bool rooted, bo
                     if (!nd->_left_child)
                         {
                         extractNodeNumberFromName(nd, used);
-                        curr_leaf++;
+                        //curr_leaf++;
                         if (!first_tip)
                             first_tip = nd;
                         }
@@ -939,6 +979,7 @@ inline void TreeManip::storeSplits(std::set<Split> & splitset)
         if (nd->_left_child)
             {
             // add this internal node's split to splitset
+            std::cerr << nd->_split.createPatternRepresentation() << std::endl;
             splitset.insert(nd->_split);
             }
         else

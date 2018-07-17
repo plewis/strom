@@ -33,6 +33,9 @@ namespace strom
 
                     double              getEdgeLength() {return _edge_length;}
                     void                setEdgeLength(double v);
+            
+                    std::string         getSplitInfo()       {return _split_info;}
+                    void                setSplitInfo(std::string info);
 
             static const double _smallest_edge_length;
 
@@ -47,9 +50,10 @@ namespace strom
             Node *              _right_sib;
             Node *              _parent;
             int                 _number;
-            std::string         _name;
             double              _edge_length;
             Split               _split;
+            std::string         _name;
+            std::string         _split_info;
         };
 
     inline Node::Node()
@@ -70,12 +74,18 @@ namespace strom
         _parent = 0;
         _number = 0;
         _name = "";
+        _split_info = "";
         _edge_length = _smallest_edge_length;
         }
 
     inline void Node::setEdgeLength(double v)
         {
         _edge_length = (v < _smallest_edge_length ? _smallest_edge_length : v);
+        }
+
+    inline void Node::setSplitInfo(std::string info)
+        {
+        _split_info = info;
         }
 
     }

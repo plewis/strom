@@ -25,7 +25,7 @@ class Strom
         unsigned               _tree_to_plot;
 
         Data::SharedPtr        _data;
-        Likelihood::SharedPtr   _likelihood;
+        Likelihood::SharedPtr  _likelihood;
         TreeSummary::SharedPtr _tree_summary;
 
         static std::string     _program_name;

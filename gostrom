@@ -1,0 +1,7 @@
+#!/bin/bash
+
+DIR="$( cd "$( dirname "$0" )" && pwd )"
+cd $DIR
+
+export LD_LIBRARY_PATH="$HOME/lib/ncl:$HOME/lib:$HOME/Documents/libraries/boost_1_65_0/stage/lib"
+./bin/strom #@
