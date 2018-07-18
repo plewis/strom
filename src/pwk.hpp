@@ -75,7 +75,7 @@ inline double PWK::logMarginalLikelihood()
     for (auto & ntrees_topol_pair : boost::adaptors::reverse(_sorted_trees))
         {
         unsigned n = ntrees_topol_pair.first;
-        unsigned t = ntrees_topol_pair.second;
+        unsigned t = ntrees_topol_pair.second.size();
         std::cout << boost::str(boost::format("%20d %20d") % t % n) << std::endl;
         }
 
