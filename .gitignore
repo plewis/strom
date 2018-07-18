@@ -19,3 +19,5 @@ src/strom-main.o
 stamp-h1
 trees.tre
 params.txt
+# Meson files
+src/builddir/

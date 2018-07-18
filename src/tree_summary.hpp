@@ -20,6 +20,9 @@ namespace strom
     class TreeSummary
         {
         public:
+            typedef std::shared_ptr< TreeSummary >      SharedPtr;
+            typedef std::pair<unsigned,Split::treeid_t> sorted_pair_t;  //POLPWK
+            typedef std::vector<sorted_pair_t>          sorted_vect_t;  //POLPWK
                                         TreeSummary();
                                         ~TreeSummary();
 
@@ -35,12 +38,6 @@ namespace strom
 
             Split::treemap_t            _treeIDs;
             std::vector<std::string>    _newicks;
-
-        public:
-
-            typedef std::shared_ptr< TreeSummary >      SharedPtr;
-            typedef std::pair<unsigned,Split::treeid_t> sorted_pair_t;  //POLPWK
-            typedef std::vector<sorted_pair_t>          sorted_vect_t;  //POLPWK
         };
 
 inline TreeSummary::TreeSummary()

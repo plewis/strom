@@ -5,12 +5,8 @@
 #include "data.hpp"
 #include "likelihood.hpp"
 #include "lot.hpp"
-#if 1
-#   include "pwk.hpp"
-#else
-#   include "chain.hpp"
-#   include "gamma_shape_updater.hpp"
-#endif
+#include "pwk.hpp"
+#include "chain.hpp"
 #include <boost/program_options.hpp>
 #include "output_manager.hpp"
 
