@@ -1,0 +1,34 @@
+language: cpp
+
+sudo: false
+
+addons:
+  apt:
+    packages:
+    # meson + ninja build system
+    - ninja-build
+    - python3-pip
+    - ccache
+    # Toolchain for compiling dependencies
+    - autotools-dev
+    - build-essential
+    - pkg-config
+    - libtool-bin
+    # Dependencies
+    - libboost-all-dev
+    - libeigen3-dev
+
+before_install:
+- pip3 install --user meson
+
+install:
+- meson --wrap-mode=forcefallback src/builddir src
+- ninja -C src/builddir
+
+# Don't spam Prof. Lewis with testing a new build system <3
+notifications:
+  recipients:
+    - omsai@member.fsf.org
+  email:
+    on_success: change
+    on_failure: always
