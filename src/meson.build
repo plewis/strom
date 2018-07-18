@@ -7,8 +7,10 @@ dep_beagle = dependency('hmsbeagle-1', version : '>=3')
 # required library using meson's compiler.find_library().
 compiler = meson.get_compiler('cpp')
 dep_boost = compiler.find_library('boost_program_options')
+dep_ncl = dependency('nclv2.1')
 dep_eigen = dependency('eigen3')
 executable('strom', 'main.cpp',
 	   dependencies : [dep_beagle,
 			   dep_boost,
+			   dep_ncl,
 			   dep_eigen])
