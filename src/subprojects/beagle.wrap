@@ -1,0 +1,9 @@
+[wrap-file]
+source_url = https://github.com/beagle-dev/beagle-lib/archive/v3.0.2.tar.gz
+source_filename = v3.0.2.tar.gz
+source_hash = 59a7081b61ead0a5738e813c6fcfb614d2c5bb49c29b28609de8e2b51bea3ec0
+directory = beagle-lib-3.0.2
+
+patch_url = https://gitlab.com/omsai/beagle-meson/-/jobs/82515475/artifacts/download
+patch_filename = beagle-meson.zip
+patch_hash = 5a3246a781c091a9a50e6aa6608065b436da3e946e12f3d30fcd9c1be0a86081

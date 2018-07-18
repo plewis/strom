@@ -1,0 +1,9 @@
+[wrap-file]
+source_url = https://sourceforge.net/projects/ncl/files/NCL/ncl-2.1.18/ncl-2.1.18.tar.gz/download
+source_filename = ncl-2.1.18.tar.gz
+source_hash = 6e792ede614f6969a0cd342fea1505b4ea3e3e4c0f50a1c0c16a3af67bfe9737
+directory = ncl-2.1.18
+
+patch_url = https://gitlab.com/omsai/ncl-meson/-/jobs/82515676/artifacts/download
+patch_filename = ncl-meson.zip
+patch_hash = be8df80d8be06ac07922e2dde56543653c93bf5aa405c489346f6f153f9a230a

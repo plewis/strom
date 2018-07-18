@@ -21,3 +21,6 @@ trees.tre
 params.txt
 # Meson files
 src/builddir/
+src/subprojects/packagecache/
+src/subprojects/beagle-lib-*/
+src/subprojects/ncl-*/
