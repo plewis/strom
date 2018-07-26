@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <boost/format.hpp>
 #include <boost/range/adaptor/reversed.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include "split.hpp"
 #include "tree_manip.hpp"
 #include "xstrom.hpp"
@@ -24,7 +25,7 @@ namespace strom
                                         TreeSummary();
                                         ~TreeSummary();
 
-            void                        readTreefile(const std::string filename, unsigned skip, unsigned tree_to_plot);
+            void                        readTreefiles(const std::vector<std::string> filenames, unsigned skip, unsigned tree_to_plot, std::string outgroup);
             void                        showSummary(unsigned tree_to_plot) const;
             typename Tree::SharedPtr    getTree(unsigned index);
             std::string                 getNewick(unsigned index);
@@ -32,17 +33,20 @@ namespace strom
 
         private:
         
+            unsigned                    _outgroup;
             Split::treeid_t             _plotted;
             Split::treemap_t            _treeIDs;
             std::vector<std::string>    _newicks;
             std::vector<std::string>    _taxon_names;
+
+            void                        readTreefile(const std::string filename, unsigned skip, std::string outgroup, bool tree_to_plot);
 
         public:
 
             typedef std::shared_ptr< TreeSummary > SharedPtr;
         };
 
-inline TreeSummary::TreeSummary()
+inline TreeSummary::TreeSummary() : _outgroup(0)
     {
     //std::cout << "Constructing a TreeSummary" << std::endl;
     }
@@ -60,7 +64,7 @@ inline Tree::SharedPtr TreeSummary::getTree(unsigned index)
     TreeManip tm;
 
     // build the tree
-    tm.buildFromNewick(_newicks[index], false, false);
+    tm.buildFromNewick(_newicks[index], false, false, _outgroup);
 
     return tm.getTree();
     }
@@ -79,10 +83,27 @@ inline void TreeSummary::clear()
     _newicks.clear();
     }
 
-inline void TreeSummary::readTreefile(const std::string filename, unsigned skip, unsigned tree_to_plot)
+inline void TreeSummary::readTreefiles(const std::vector<std::string> filenames, unsigned skip, unsigned tree_to_plot, std::string outgroup)
+    {
+    unsigned file_index = 0;
+    for (auto fn : filenames)
+        {
+        if (++file_index == tree_to_plot) {
+            readTreefile(fn, skip, outgroup, true);
+            }
+        else {
+            readTreefile(fn, skip, outgroup, false);
+            }
+        }
+    }
+    
+inline void TreeSummary::readTreefile(const std::string filename, unsigned skip, std::string outgroup, bool tree_to_plot)
     {
     TreeManip tm;
     Split::treeid_t splitset;
+    
+    if (tree_to_plot)
+        skip = 0;
 
     // See http://phylo.bio.ku.edu/ncldocs/v2.1/funcdocs/index.html for NCL documentation
 
@@ -105,6 +126,28 @@ inline void TreeSummary::readTreefile(const std::string filename, unsigned skip,
         
         _taxon_names.clear();
         _taxon_names = taxaBlock->GetAllLabels();
+        
+        // if an outgroup taxon was specified, obtain its index and store in _outgroup
+        if (outgroup.length() > 0)
+            {
+            unsigned t = 0;
+            for (auto nm : _taxon_names) {
+                std::cerr << boost::str(boost::format("%d --> %s") % (t++) % nm) << std::endl;
+                }
+            std::string outgroup_name = outgroup;
+            boost::replace_all(outgroup_name, "_", " ");
+            auto it = std::find(_taxon_names.begin(), _taxon_names.end(), outgroup_name);
+            if (it != _taxon_names.end())
+                {
+                auto idx = std::distance(_taxon_names.begin(), it);
+                _outgroup = (unsigned)idx;
+                std::cerr << boost::str(boost::format("Outgroup found: index of \"%s\" was %d") % outgroup_name % _outgroup)<< std::endl;
+                }
+            else
+                std::cerr << boost::str(boost::format("Outgroup NOT found: \"%s\" not located in _taxon_names") % outgroup) << std::endl;
+            }
+        else
+            std::cerr << "No outgroup was specified" << std::endl;
 
         const unsigned nTreesBlocks = nexusReader.GetNumTreesBlocks(taxaBlock);
         for (unsigned j = 0; j < nTreesBlocks; ++j)
@@ -124,11 +167,18 @@ inline void TreeSummary::readTreefile(const std::string filename, unsigned skip,
                     unsigned tree_index = (unsigned)_newicks.size() - 1;
 
                     // build the tree
-                    tm.buildFromNewick(newick, false, false);
+                    tm.buildFromNewick(newick, false, false, _outgroup);
                     //std::cerr << "newick = " << newick << std::endl;
 
                     // store set of splits
-                    if (t != tree_to_plot - 1)
+                    if (tree_to_plot)
+                        {
+                        //std::cerr << "tree " << t << ", tree_to_plot = " << tree_to_plot << ": storing splits in _plotted" << std::endl;
+                        _plotted.clear();
+                        tm.storeSplits(_plotted);
+                        break;  // assume first tree is the one to plot
+                        }
+                    else
                         {
                         //std::cerr << "tree " << t << ", tree_to_plot = " << tree_to_plot << ": storing splits in _treeIDs" << std::endl;
 
@@ -151,12 +201,6 @@ inline void TreeSummary::readTreefile(const std::string filename, unsigned skip,
                             iter->second.push_back(tree_index);
                             }
                         }
-                    else
-                        {
-                        //std::cerr << "tree " << t << ", tree_to_plot = " << tree_to_plot << ": storing splits in _plotted" << std::endl;
-                        _plotted.clear();
-                        tm.storeSplits(_plotted);
-                        }
 
                     } // trees loop
                 } // if skip < ntrees
@@ -174,11 +218,12 @@ inline void TreeSummary::showSummary(unsigned tree_to_plot) const
     // Produce some output to show that it works
     std::cout << boost::str(boost::format("\nRead %d trees from file") % _newicks.size()) << std::endl;
     std::cout << boost::str(boost::format("\nTree to plot is number %d") % tree_to_plot) << std::endl;
+    std::cout << boost::str(boost::format("\nOutgroup has index %d") % _outgroup) << std::endl;
     std::cout << boost::str(boost::format("\nNumber of input trees %d") % num_input_trees) << std::endl;
     
     // Build tree to plot
     TreeManip tm;
-    tm.buildFromNewick(_newicks[tree_to_plot-1], false, false);
+    tm.buildFromNewick(_newicks[tree_to_plot-1], false, false, _outgroup);
     Split::treeid_t splitset;
     tm.storeSplits(splitset);
 

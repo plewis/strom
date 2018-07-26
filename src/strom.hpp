@@ -20,17 +20,18 @@ class Strom
 
     private:
 
-        std::string            _data_file_name;
-        std::string            _tree_file_name;
-        unsigned               _tree_to_plot;
+        std::string                 _data_file_name;
+        std::vector<std::string>    _tree_file_names;
+        std::string                 _outgroup_name;
+        unsigned                    _tree_to_plot;
 
-        Data::SharedPtr        _data;
-        Likelihood::SharedPtr  _likelihood;
-        TreeSummary::SharedPtr _tree_summary;
+        Data::SharedPtr             _data;
+        Likelihood::SharedPtr       _likelihood;
+        TreeSummary::SharedPtr      _tree_summary;
 
-        static std::string     _program_name;
-        static unsigned        _major_version;
-        static unsigned        _minor_version;
+        static std::string          _program_name;
+        static unsigned             _major_version;
+        static unsigned             _minor_version;
 
     };
 
@@ -48,7 +49,8 @@ inline Strom::~Strom()
 inline void Strom::clear()
     {
     _data_file_name = "";
-    _tree_file_name = "";
+    //_tree_file_names = "";
+    _outgroup_name = "";
     _tree_to_plot = 0;
     _data           = nullptr;
     _likelihood     = nullptr;
@@ -63,7 +65,9 @@ inline void Strom::processCommandLineOptions(int argc, const char * argv[])
         ("help,h", "produce help message")
         ("version,v", "show program version")
         //("datafile,d",  boost::program_options::value(&_data_file_name)->required(), "name of data file in NEXUS format")
-        ("treefile,t",  boost::program_options::value(&_tree_file_name)->required(), "name of tree file in NEXUS format")
+        ("treefile,t",  boost::program_options::value(&_tree_file_names)->multitoken(), "name of tree file in NEXUS format (can be a vector)")
+        //("treefile,t",  boost::program_options::value(&_tree_file_name)->required(), "name of tree file in NEXUS format")
+        ("outgroup",  boost::program_options::value(&_outgroup_name), "name of taxon to use as outgroup for tree drawing")
         ("plot",  boost::program_options::value(&_tree_to_plot), "number of tree to plot")
         ;
     boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
@@ -101,6 +105,14 @@ inline void Strom::processCommandLineOptions(int argc, const char * argv[])
             std::exit(1);
             }
         }
+        
+    if (vm.count("treefile") > 0)
+        {
+        std::cerr << _tree_file_names.size() << " tree file names were specified:\n";
+        for (auto nm : _tree_file_names) {
+            std::cerr << "  " << nm << std::endl;
+            }
+        }
     }
 
 inline void Strom::run()
@@ -119,7 +131,7 @@ inline void Strom::run()
 
         // Read in trees
         _tree_summary = TreeSummary::SharedPtr(new TreeSummary());
-        _tree_summary->readTreefile(_tree_file_name, 0, _tree_to_plot);
+        _tree_summary->readTreefiles(_tree_file_names, 0, _tree_to_plot, _outgroup_name);
         _tree_summary->showSummary(_tree_to_plot);
 
         //Tree::SharedPtr tree = _tree_summary->getTree(0);

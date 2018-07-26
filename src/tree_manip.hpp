@@ -31,7 +31,7 @@ namespace strom
 
             std::string                 makeNewickNumbers(unsigned precision) const;
             std::string                 makeNewickNames(unsigned precision, const std::vector<std::string> & taxon_names) const;
-            void                        buildFromNewick(const std::string newick, bool rooted, bool allow_polytomies);
+            void                        buildFromNewick(const std::string newick, bool rooted, bool allow_polytomies, unsigned outgroup_index);
             void                        storeSplits(std::set<Split> & splitset);
             void                        rerootAt(int node_index);
             
@@ -682,7 +682,7 @@ inline void TreeManip::rerootHelper(Node * m, Node * t)
         }
     }
 
-inline void TreeManip::buildFromNewick(const std::string newick, bool rooted, bool allow_polytomies)
+inline void TreeManip::buildFromNewick(const std::string newick, bool rooted, bool allow_polytomies, unsigned outgroup_index)
     {
     clear();
     _tree.reset(new Tree());
@@ -949,8 +949,8 @@ inline void TreeManip::buildFromNewick(const std::string newick, bool rooted, bo
 
         if (!_tree->_is_rooted)
             {
-            // Root at leaf whose _number = 0
-            rerootAt(0);
+            // Root at leaf whose _number = outgroup_index
+            rerootAt(outgroup_index);
             }
 
         refreshPreorder();
@@ -979,7 +979,7 @@ inline void TreeManip::storeSplits(std::set<Split> & splitset)
         if (nd->_left_child)
             {
             // add this internal node's split to splitset
-            std::cerr << nd->_split.createPatternRepresentation() << std::endl;
+            //std::cerr << nd->_split.createPatternRepresentation() << std::endl;
             splitset.insert(nd->_split);
             }
         else
