@@ -69,11 +69,12 @@ inline Tree::SharedPtr TreeSummary::getTree(unsigned index)
     // build the tree
     tm.buildFromNewick(_newicks[index], false, false);
 
-    // root the tree
-    if (_outgroup_split)
-        tm.rerootAtSplit(_outgroup_split);
-    else if (_outgroup_node_number != UINT_MAX)
-        tm.rerootAtNodeNumber(_outgroup_node_number);
+    // root the tree arbitrarily at split 0
+    tm.rerootAtNodeNumber(0);
+    //if (_outgroup_split)
+    //    tm.rerootAtSplit(_outgroup_split);
+    //else if (_outgroup_node_number != UINT_MAX)
+    //    tm.rerootAtNodeNumber(_outgroup_node_number);
         
     return tm.getTree();
     }
@@ -215,10 +216,11 @@ inline void TreeSummary::readTreefile(std::ostream & outf, const std::string fil
 
                     // build the tree
                     tm.buildFromNewick(newick, false, false);
-                    if (_outgroup_split)
-                        tm.rerootAtSplit(_outgroup_split);
-                    else if (_outgroup_node_number != UINT_MAX)
-                        tm.rerootAtNodeNumber(_outgroup_node_number);
+                    tm.rerootAtNodeNumber(0);
+                    //if (_outgroup_split)
+                    //    tm.rerootAtSplit(_outgroup_split);
+                    //else if (_outgroup_node_number != UINT_MAX)
+                    //    tm.rerootAtNodeNumber(_outgroup_node_number);
 
                     // store set of splits
                     if (tree_to_plot)
@@ -274,10 +276,11 @@ inline void TreeSummary::showSummary(std::ostream & outf) const
     // Build tree to plot
     TreeManip tm;
     tm.buildFromNewick(_newicks[_tree_to_plot], false, false);
-    if (_outgroup_split)
-        tm.rerootAtSplit(_outgroup_split);
-    else if (_outgroup_node_number != UINT_MAX)
-        tm.rerootAtNodeNumber(_outgroup_node_number);
+    tm.rerootAtNodeNumber(0);
+    //if (_outgroup_split)
+    //    tm.rerootAtSplit(_outgroup_split);
+    //else if (_outgroup_node_number != UINT_MAX)
+    //    tm.rerootAtNodeNumber(_outgroup_node_number);
     outf << "\nTree to plot: " << _newicks[_tree_to_plot] << "\n" << std::endl;
     Split::treeid_t splitset;
     tm.storeSplits(splitset);   //TODO should be identical to _plotted
@@ -447,7 +450,14 @@ inline void TreeSummary::showSummary(std::ostream & outf) const
             outf << boost::str(boost::format("\n%20s %s") % "null" % s.createPatternRepresentation()) << std::endl;
             }
         }
+    
+    // Reroot the tree at the requested split or outgroup taxon
+    if (_outgroup_split)
+        tm.rerootAtSplit(_outgroup_split);
+    else if (_outgroup_node_number != UINT_MAX)
+        tm.rerootAtNodeNumber(_outgroup_node_number);
         
+    // Save the tree with split info to file treedata.js
     std::ofstream jsfile("treedata.js", std::ios::out);
     jsfile << "var newick = \"" << tm.makeNewickNames(5, _taxon_names) << "\";" << std::endl;
     jsfile.close();
