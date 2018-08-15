@@ -30,9 +30,12 @@ namespace strom
             typedef std::map< treeid_t, std::vector<unsigned> > treemap_t;
             typedef std::tuple<unsigned,unsigned,unsigned>      split_metrics_t;
 
+            Split::split_unit_t                                 getBits(unsigned unit_index) const;
+            bool                                                getBitAt(unsigned leaf_index) const;
             void                                                setBitAt(unsigned leaf_index);
             void                                                addSplit(const Split & other);
             
+            bool                                                isEquivalent(const Split & other) const;
             bool                                                isCompatible(const Split & other) const;
             bool                                                conflictsWith(const Split & other) const;
 
@@ -115,6 +118,20 @@ inline void Split::setBitAt(unsigned leaf_index)
     _bits[unit_index] |= bit_to_set;
     }
 
+inline Split::split_unit_t Split::getBits(unsigned unit_index) const
+    {
+    assert(unit_index < _bits.size());
+    return _bits[unit_index];
+    }
+
+inline bool Split::getBitAt(unsigned leaf_index) const
+    {
+    unsigned unit_index = leaf_index/_bits_per_unit;
+    unsigned bit_index = leaf_index - unit_index*_bits_per_unit;
+    split_unit_t bit_to_set = _unity << bit_index;
+    return (bool)(_bits[unit_index] & bit_to_set);
+    }
+
 inline void Split::addSplit(const Split & other)
     {
     unsigned nunits = (unsigned)_bits.size();
@@ -125,6 +142,71 @@ inline void Split::addSplit(const Split & other)
         }
     }
     
+// Returns true if this split and `other' are equivalent. Equivalence is less strict than equality.
+// Two splits can be equivalent even if they are not equal because of the position of the root.
+// For example, these two splits are equal because a & b = a = b:
+//
+//  split a: -***---*--
+//  split b: -***---*--
+//    a & b: -***---*-- (equals both a and b)
+//
+//  These two splits are also equal because a & ~b = a and ~a & b = b:
+//
+//  split a: -****-*---
+//  split b: *----*-***
+//    a & b: ----------
+//   a & ~b: -****-*--- (equal to a)
+//   ~a & b: *----*-*** (equal to b)
+//
+//  These two splits, on the other hand, are not equal because a & b equals neither a nor b, a & ~b does not equal a, and ~a & b does not equal b:
+//
+//  split a: -***---*--
+//  split b: ---***---*
+//    a & b: ---*------ (equals neither a nor b)
+//   a & ~b: -**----*-- (not equal to a)
+//   ~a & b: ----**---* (not equal to b)
+//
+inline bool Split::isEquivalent(const Split & other) const
+    {
+    //std::cerr << "this split:  " << createPatternRepresentation() << std::endl;
+    //std::cerr << "other split: " << other.createPatternRepresentation() << std::endl;
+    unsigned nunits = (unsigned)_bits.size();
+    assert(nunits > 0);
+    unsigned polarity = 0; // polarity 1 means root is on the same side of both splits, 2 means they are inverted relative to one another
+    for (unsigned i = 0; i < nunits; ++i)
+        {
+        split_unit_t a = _bits[i];
+        split_unit_t b = other._bits[i];
+        bool a_equals_b = (a == b);
+        bool a_equals_inverse_b = (a == ~b);
+        bool ok = (a_equals_b || a_equals_inverse_b);
+        if (ok)
+            {
+            if (polarity == 0)
+                {
+                if (a_equals_b)
+                    polarity = 1;
+                else
+                    polarity = 2;
+                }
+            else
+                {
+                if (polarity == 1 && !a_equals_b )
+                    return false;
+                else if (polarity == 2 && !a_equals_inverse_b )
+                    return false;
+                }
+            }
+        else
+            {
+            return false;
+            }
+        }
+
+    // All of the units were equivalent, so that means the splits are equivalent
+    return true;
+    }
+
 // Returns true if this split and `other' are compatible. The two splits a and b are compatible if a & b is nonzero
 // and also not equal to either a or b. For example, these two splits
 //

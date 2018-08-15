@@ -1,0 +1,25 @@
+#NEXUS
+[ID: 1234567]
+begin taxa;
+  dimensions ntax=6;
+  taxlabels
+    zero
+    one
+    two
+    three
+    four
+    five;
+end;
+
+begin trees;
+	tree  tree11  = (zero:0.4,((one:0.1,two:0.1):0.1,three:0.2):0.2,(four:0.1,five:0.1):0.3);
+	tree  tree12  = (zero:0.4,((one:0.1,two:0.1):0.1,three:0.2):0.2,(four:0.1,five:0.1):0.3);
+	tree  tree13  = (zero:0.4,((one:0.1,two:0.1):0.1,three:0.2):0.2,(four:0.1,five:0.1):0.3);
+	tree  tree14  = (zero:0.4,((one:0.1,two:0.1):0.1,three:0.2):0.2,(four:0.1,five:0.1):0.3);
+	tree  tree21  = (zero:0.4,(one:0.1,two:0.1):0.3,((three:0.1,four:0.1):0.1,five:0.2):0.2);
+	tree  tree22  = (zero:0.4,(one:0.1,two:0.1):0.3,((three:0.1,four:0.1):0.1,five:0.2):0.2);
+	tree  tree23  = (zero:0.4,(one:0.1,two:0.1):0.3,((three:0.1,four:0.1):0.1,five:0.2):0.2);
+	tree  tree31  = (zero:0.4,(one:0.1,three:0.1):0.3,(two:0.2,(four:0.1,five:0.1):0.1):0.2);
+	tree  tree32  = (zero:0.4,(one:0.1,three:0.1):0.3,(two:0.2,(four:0.1,five:0.1):0.1):0.2);
+	tree  tree41  = (zero:0.4,((one:0.1,two:0.1):0.1,five:0.2):0.2,(three:0.1,four:0.1):0.3);
+end;

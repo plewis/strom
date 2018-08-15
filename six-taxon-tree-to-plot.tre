@@ -1,0 +1,16 @@
+#NEXUS
+[ID: 1234567]
+begin taxa;
+  dimensions ntax=6;
+  taxlabels
+    zero
+    one
+    two
+    three
+    four
+    five;
+end;
+
+begin trees;
+	tree  majrule = (zero:0.4,((one:0.1,two:0.1):0.1,three:0.2):0.2,(four:0.1,five:0.1):0.3);
+end;

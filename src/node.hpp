@@ -22,8 +22,9 @@ namespace strom
 
         public:
                                         Node();
+                                        Node(const Node & other);
                                         ~Node();
-
+            
                     Node *              getParent()     {return _parent;}
                     Node *              getLeftChild()  {return _left_child;}
                     Node *              getRightSib()   {return _right_sib;}
@@ -58,15 +59,22 @@ namespace strom
 
     inline Node::Node()
         {
-        //std::cout << "Creating Node object" << std::endl;
+        //std::cout << "Creating Node object (" << this << ")" << std::endl;
+        clear();
+        }
+
+    inline Node::Node(const Node & other)
+        {
+        //std::cout << "Inside Node copy constructor (this: " << this << " | other: " << (&other) << ")" << std::endl;
+        //std::cout << "Note: ignoring other!" << std::endl;
         clear();
         }
 
     inline Node::~Node()
         {
-        //std::cout << "Destroying Node object" << std::endl;
+        //std::cout << "Destroying Node object (" << this << ")" << std::endl;
         }
-
+        
     inline void Node::clear()
         {
         _left_child = 0;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <climits>
 #include <memory>
 #include <stack>
 #include <boost/format.hpp>
@@ -31,14 +32,18 @@ namespace strom
 
             std::string                 makeNewickNumbers(unsigned precision) const;
             std::string                 makeNewickNames(unsigned precision, const std::vector<std::string> & taxon_names) const;
-            void                        buildFromNewick(const std::string newick, bool rooted, bool allow_polytomies, unsigned outgroup_index);
+            void                        buildFromNewick(const std::string newick, bool rooted, bool allow_polytomies);
             void                        storeSplits(std::set<Split> & splitset);
-            void                        rerootAt(int node_index);
             
+            void                        rerootAtNodeNumber(int node_index);
+            void                        rerootAtSplit(Split::SharedPtr s);
+
             Node *                      findNodeWithSplit(const Split & s);
 
         private:
 
+            void                        rerootAtEdge(Node * edge_owner);
+            void                        rerootAtNode(Node * prospective_root);
             void                        refreshPreorder();
             void                        refreshLevelorder();
             void                        rerootHelper(Node * m, Node * t);
@@ -380,9 +385,13 @@ inline void TreeManip::refreshPreorder()
 
     Node * nd = first_preorder;
     _tree->_preorder.push_back(nd);
+    
+    //std::cerr << "\n******** begin *********\n" << std::endl;
 
     while (true)
         {
+        //std::cerr << boost::str(boost::format("node %d: lchild=%s rsib=%s par=%s") % nd->_number % (nd->_left_child ? std::to_string(nd->_left_child->_number) : "NULL") % (nd->_right_sib ? std::to_string(nd->_right_sib->_number) : "NULL") % (nd->_parent ? std::to_string(nd->_parent->_number) : "NULL") )  << std::endl;
+        
         if (!nd->_left_child && !nd->_right_sib)
             {
             // nd has no children and no siblings, so next preorder is the right sibling of
@@ -422,6 +431,8 @@ inline void TreeManip::refreshPreorder()
             }
 
         }   // end while loop
+        
+    //std::cerr << "\n******* end *********\n" << std::endl;
 
     // renumber internal nodes in postorder sequence
     int curr_internal = _tree->_nleaves;
@@ -437,8 +448,8 @@ inline void TreeManip::refreshPreorder()
             }
         }
 
-    if (_tree->_is_rooted)
-        _tree->_root->_number = curr_internal;
+    //if (_tree->_is_rooted)
+    //    _tree->_root->_number = curr_internal;
     }
 
 //                            1. start by adding only descendant of root node to buffer queue
@@ -546,8 +557,113 @@ inline bool TreeManip::canHaveSibling(Node * nd, bool rooted, bool allow_polytom
     return nd_can_have_sibling;
     }
 
-inline void TreeManip::rerootAt(int node_number)
+inline void TreeManip::rerootAtSplit(Split::SharedPtr s)
     {
+    assert(s);
+    
+    // Force recalculation of all splits
+    Split::treeid_t splitset;
+    storeSplits(splitset);
+    
+    // Locate node having _split compatible with s
+    Split & target_split = *s;
+    Node * selected_node = 0;
+    for (auto & curr : _tree->_nodes)
+        {
+        if (curr._split.isEquivalent(target_split))
+            {
+            selected_node = &curr;
+            break;
+            }
+        }
+    if (!selected_node)
+        throw XStrom("no split in tree is compatible with outgroup");
+        
+    // Add new node halfway down selected_node's edge and reroot at that fake leaf
+    rerootAtEdge(selected_node);
+    }
+    
+inline void TreeManip::rerootAtEdge(Node * edge_owner)
+    {
+    Node * fake_leaf = 0;
+    if (_tree->_is_rooted)
+        {
+        throw XStrom("rerootAtEdge produces a rooted tree from an unrooted tree at the moment; you called it for a rooted tree");
+        }
+    else
+        {
+        unsigned num_nodes = (unsigned)_tree->_nodes.size();
+        assert(num_nodes > 0);
+        
+        // the resize in the next line causes all nodes to be moved to new addresses, invalidating pointers and _preorder/_levelorder vectors
+        //_tree->_nodes.resize(num_nodes + 2);
+        
+        fake_leaf = &_tree->_nodes[num_nodes - 1];
+        Node * fake_leaf_parent = &_tree->_nodes[num_nodes - 2];
+        
+        double prev_edge_length = edge_owner->_edge_length;
+        Node * edge_owner_parent = edge_owner->_parent;
+        assert(edge_owner_parent);  // assume edge_owner has a parent
+        
+        Node * edge_owner_left_sib = edge_owner_parent->_left_child;
+        if (edge_owner_left_sib == edge_owner)
+            edge_owner_left_sib = 0;
+        else
+            {
+            while (edge_owner_left_sib->_right_sib != edge_owner)
+                edge_owner_left_sib = edge_owner_left_sib->_right_sib;
+            }
+        
+        fake_leaf->_left_child            = 0;
+        fake_leaf->_right_sib             = edge_owner;
+        fake_leaf->_parent                = fake_leaf_parent;
+        fake_leaf->_number                = -1;
+        fake_leaf->_edge_length           = 0.0;
+        
+        fake_leaf_parent->_left_child     = fake_leaf;
+        fake_leaf_parent->_right_sib      = edge_owner->_right_sib;
+        fake_leaf_parent->_parent         = edge_owner_parent;
+        fake_leaf_parent->_number         = num_nodes - 1;
+        fake_leaf_parent->_edge_length    = prev_edge_length/2.0;
+        
+        //edge_owner->_left_child           = unmodified;
+        edge_owner->_right_sib            = 0;
+        edge_owner->_parent               = fake_leaf_parent;
+        //edge_owner->_number               = unmodified;
+        edge_owner->_edge_length          = prev_edge_length/2.0;
+        
+        if (edge_owner_left_sib)
+            {
+            //edge_owner_left_sib->_left_child  = unmodified;
+            edge_owner_left_sib->_right_sib   = fake_leaf_parent;
+            //edge_owner_left_sib->_parent      = unmodified;
+            //edge_owner_left_sib->_number      = unmodified;
+            //edge_owner_left_sib->_edge_length = unmodified;
+            
+            //edge_owner_parent->_left_child    = unmodified;
+            //edge_owner_parent->_right_sib     = unmodified;
+            //edge_owner_parent->_parent        = unmodified;
+            //edge_owner_parent->_number        = unmodified;
+            //edge_owner_parent->_edge_length   = unmodified;
+            }
+        else
+            {
+            edge_owner_parent->_left_child    = fake_leaf_parent;
+            //edge_owner_parent->_right_sib     = unmodified;
+            //edge_owner_parent->_parent        = unmodified;
+            //edge_owner_parent->_number        = unmodified;
+            //edge_owner_parent->_edge_length   = unmodified;
+            }
+        }
+    _tree->_is_rooted = true;
+    refreshPreorder();
+    refreshLevelorder();
+    rerootAtNode(fake_leaf);
+    }
+    
+inline void TreeManip::rerootAtNodeNumber(int node_number)
+    {
+    assert(node_number != UINT_MAX);
     // Locate node having _number equal to node_number
     Node * nd = 0;
     for (auto & curr : _tree->_nodes)
@@ -561,11 +677,19 @@ inline void TreeManip::rerootAt(int node_number)
     if (!nd)
         throw XStrom(boost::str(boost::format("no node found with number equal to %d") % node_number));
 
-    if (nd->_left_child)
-        throw XStrom(boost::str(boost::format("cannot currently root trees at internal nodes (e.g. node %d)") % nd->_number));
+    if (nd != _tree->_root)
+        {
+        if (nd->_left_child)
+            throw XStrom(boost::str(boost::format("cannot currently root trees at internal nodes (e.g. node %d)") % nd->_number));
+        rerootAtNode(nd);
+        }
+    }
 
-    Node * t = nd;
-    Node * m = nd->_parent;
+inline void TreeManip::rerootAtNode(Node * prospective_root)
+    {
+    Node * nd = prospective_root;
+    Node * t = prospective_root;
+    Node * m = prospective_root->_parent;
     while (nd->_parent)
         {
         // Begin by swapping the mover's edge length with nd's edge length
@@ -581,6 +705,8 @@ inline void TreeManip::rerootAt(int node_number)
         m = nd->_parent;
         }
     _tree->_root = nd;
+    refreshPreorder();
+    refreshLevelorder();
     }
 
 inline void TreeManip::rerootHelper(Node * m, Node * t)
@@ -682,7 +808,7 @@ inline void TreeManip::rerootHelper(Node * m, Node * t)
         }
     }
 
-inline void TreeManip::buildFromNewick(const std::string newick, bool rooted, bool allow_polytomies, unsigned outgroup_index)
+inline void TreeManip::buildFromNewick(const std::string newick, bool rooted, bool allow_polytomies)
     {
     clear();
     _tree.reset(new Tree());
@@ -697,7 +823,7 @@ inline void TreeManip::buildFromNewick(const std::string newick, bool rooted, bo
     _tree->_nleaves = countNewickLeaves(commentless_newick);
     if (_tree->_nleaves == 0)
         throw XStrom("Expecting newick tree description to have at least 4 leaves");
-    unsigned max_nodes = 2*_tree->_nleaves - (_tree->_is_rooted ? 0 : 2);
+    unsigned max_nodes = 2*_tree->_nleaves; // best allocate for rooted tree always - (_tree->_is_rooted ? 0 : 2);
     _tree->_nodes.resize(max_nodes);
 
     // Assign all nodes a default node number that is negative to make it easy to tell if we've not set it
@@ -949,8 +1075,7 @@ inline void TreeManip::buildFromNewick(const std::string newick, bool rooted, bo
 
         if (!_tree->_is_rooted)
             {
-            // Root at leaf whose _number = outgroup_index
-            rerootAt(outgroup_index);
+            rerootAtNodeNumber(0);
             }
 
         refreshPreorder();

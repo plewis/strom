@@ -1,5 +1,6 @@
 #pragma once
 
+#include <climits>
 #include <set>
 #include <map>
 #include <vector>
@@ -25,28 +26,30 @@ namespace strom
                                         TreeSummary();
                                         ~TreeSummary();
 
-            void                        readTreefiles(const std::vector<std::string> filenames, unsigned skip, unsigned tree_to_plot, std::string outgroup);
-            void                        showSummary(unsigned tree_to_plot) const;
+            void                        readTreefiles(std::ostream & outf, const std::vector<std::string> filenames, unsigned skip, unsigned tree_to_plot, std::vector<std::string> & outgroup_names);
+            void                        showSummary(std::ostream & outf) const;
             typename Tree::SharedPtr    getTree(unsigned index);
             std::string                 getNewick(unsigned index);
             void                        clear();
 
         private:
         
-            unsigned                    _outgroup;
+            unsigned                    _outgroup_node_number;
+            Split::SharedPtr            _outgroup_split;
+            unsigned                    _tree_to_plot;
             Split::treeid_t             _plotted;
             Split::treemap_t            _treeIDs;
             std::vector<std::string>    _newicks;
             std::vector<std::string>    _taxon_names;
 
-            void                        readTreefile(const std::string filename, unsigned skip, std::string outgroup, bool tree_to_plot);
+            void                        readTreefile(std::ostream & outf, const std::string filename, unsigned skip, std::vector<std::string> & outgroup_names, bool tree_to_plot);
 
         public:
 
             typedef std::shared_ptr< TreeSummary > SharedPtr;
         };
 
-inline TreeSummary::TreeSummary() : _outgroup(0)
+inline TreeSummary::TreeSummary() : _outgroup_node_number(UINT_MAX), _tree_to_plot(0)
     {
     //std::cout << "Constructing a TreeSummary" << std::endl;
     }
@@ -64,8 +67,14 @@ inline Tree::SharedPtr TreeSummary::getTree(unsigned index)
     TreeManip tm;
 
     // build the tree
-    tm.buildFromNewick(_newicks[index], false, false, _outgroup);
+    tm.buildFromNewick(_newicks[index], false, false);
 
+    // root the tree
+    if (_outgroup_split)
+        tm.rerootAtSplit(_outgroup_split);
+    else if (_outgroup_node_number != UINT_MAX)
+        tm.rerootAtNodeNumber(_outgroup_node_number);
+        
     return tm.getTree();
     }
 
@@ -83,21 +92,21 @@ inline void TreeSummary::clear()
     _newicks.clear();
     }
 
-inline void TreeSummary::readTreefiles(const std::vector<std::string> filenames, unsigned skip, unsigned tree_to_plot, std::string outgroup)
+inline void TreeSummary::readTreefiles(std::ostream & outf, const std::vector<std::string> filenames, unsigned skip, unsigned tree_to_plot, std::vector<std::string> & outgroup_names)
     {
     unsigned file_index = 0;
     for (auto fn : filenames)
         {
         if (++file_index == tree_to_plot) {
-            readTreefile(fn, skip, outgroup, true);
+            readTreefile(outf, fn, skip, outgroup_names, true);
             }
         else {
-            readTreefile(fn, skip, outgroup, false);
+            readTreefile(outf, fn, skip, outgroup_names, false);
             }
         }
     }
     
-inline void TreeSummary::readTreefile(const std::string filename, unsigned skip, std::string outgroup, bool tree_to_plot)
+inline void TreeSummary::readTreefile(std::ostream & outf, const std::string filename, unsigned skip, std::vector<std::string> & outgroup_names, bool tree_to_plot)
     {
     TreeManip tm;
     Split::treeid_t splitset;
@@ -120,34 +129,72 @@ inline void TreeSummary::readTreefile(const std::string filename, unsigned skip,
     int numTaxaBlocks = nexusReader.GetNumTaxaBlocks();
     for (int i = 0; i < numTaxaBlocks; ++i)
         {
-        clear();
+        //clear();
         NxsTaxaBlock * taxaBlock = nexusReader.GetTaxaBlock(i);
         std::string taxaBlockTitle = taxaBlock->GetTitle();
         
-        _taxon_names.clear();
-        _taxon_names = taxaBlock->GetAllLabels();
-        
-        // if an outgroup taxon was specified, obtain its index and store in _outgroup
-        if (outgroup.length() > 0)
-            {
-            unsigned t = 0;
-            for (auto nm : _taxon_names) {
-                std::cerr << boost::str(boost::format("%d --> %s") % (t++) % nm) << std::endl;
+        //_taxon_names.clear();
+        if (_taxon_names.size() == 0) {
+            _taxon_names = taxaBlock->GetAllLabels();
+            }
+        else {
+            std::vector<std::string> tmp = taxaBlock->GetAllLabels();
+            for (unsigned i = 0; i < tmp.size(); ++i) {
+                if (tmp[i] != _taxon_names[i])
+                    throw XStrom(boost::str(boost::format("Taxon order different in file \"%s\"") % filename));
                 }
-            std::string outgroup_name = outgroup;
-            boost::replace_all(outgroup_name, "_", " ");
-            auto it = std::find(_taxon_names.begin(), _taxon_names.end(), outgroup_name);
-            if (it != _taxon_names.end())
+        }
+        
+        // if one outgroup taxon was specified, store leaf node number in _outgroup_node_number
+        // if more than one outgroup taxon was specified, store split of outgroup MRCA in _outgroup_split
+        if (_outgroup_node_number == UINT_MAX)
+            {
+            if (outgroup_names.size() == 1)
                 {
-                auto idx = std::distance(_taxon_names.begin(), it);
-                _outgroup = (unsigned)idx;
-                std::cerr << boost::str(boost::format("Outgroup found: index of \"%s\" was %d") % outgroup_name % _outgroup)<< std::endl;
+                // store index of taxon name in _taxon_names vector in _outgroup_node_number
+                // leave _outgroup_split empty
+                assert(outgroup_names[0].length() > 0);
+
+                //unsigned t = 0;
+                //for (auto nm : _taxon_names) {
+                //    outf << boost::str(boost::format("%d --> %s") % (t++) % nm) << std::endl;
+                //    }
+
+                std::string outgroup_name = outgroup_names[0];
+                boost::replace_all(outgroup_name, "_", " ");
+                auto it = std::find(_taxon_names.begin(), _taxon_names.end(), outgroup_name);
+                if (it != _taxon_names.end())
+                    {
+                    auto idx = std::distance(_taxon_names.begin(), it);
+                    _outgroup_node_number = (unsigned)idx;
+                    outf << boost::str(boost::format("Outgroup found: index of \"%s\" was %d") % outgroup_name % _outgroup_node_number)<< std::endl;
+                    }
+                else
+                    throw XStrom(boost::str(boost::format("Outgroup NOT found: \"%s\" not located in _taxon_names") % outgroup_name));
                 }
             else
-                std::cerr << boost::str(boost::format("Outgroup NOT found: \"%s\" not located in _taxon_names") % outgroup) << std::endl;
+                {
+                // store split with bits set for all outgroup taxa in _outgroup_split
+                // leave _outgroup_node_number set to UINT_MAX
+                _outgroup_split = Split::SharedPtr(new Split);
+                _outgroup_split->resize((unsigned)_taxon_names.size());
+                for (auto outgroup_name : outgroup_names)
+                    {
+                    boost::replace_all(outgroup_name, "_", " ");
+                    auto it = std::find(_taxon_names.begin(), _taxon_names.end(), outgroup_name);
+                    if (it != _taxon_names.end())
+                        {
+                        auto idx = std::distance(_taxon_names.begin(), it);
+                        unsigned taxon_index = (unsigned)idx;
+                        _outgroup_split->setBitAt(taxon_index);
+                        outf << boost::str(boost::format("Outgroup taxon found: index of \"%s\" was %d") % outgroup_name % taxon_index)<< std::endl;
+                        }
+                    else
+                        outf << boost::str(boost::format("Outgroup taxon NOT found: \"%s\" not located in _taxon_names vector") % outgroup_name) << std::endl;
+                    }
+                //outf << "outgroup split: " << _outgroup_split->createPatternRepresentation() << std::endl;
+                }
             }
-        else
-            std::cerr << "No outgroup was specified" << std::endl;
 
         const unsigned nTreesBlocks = nexusReader.GetNumTreesBlocks(taxaBlock);
         for (unsigned j = 0; j < nTreesBlocks; ++j)
@@ -162,25 +209,29 @@ inline void TreeSummary::readTreefile(const std::string filename, unsigned skip,
                     const NxsFullTreeDescription & d = treesBlock->GetFullTreeDescription(t);
 
                     // store the newick tree description
-                    std::string newick = d.GetNewick();;
+                    std::string newick = d.GetNewick();
                     _newicks.push_back(newick);
                     unsigned tree_index = (unsigned)_newicks.size() - 1;
 
                     // build the tree
-                    tm.buildFromNewick(newick, false, false, _outgroup);
-                    //std::cerr << "newick = " << newick << std::endl;
+                    tm.buildFromNewick(newick, false, false);
+                    if (_outgroup_split)
+                        tm.rerootAtSplit(_outgroup_split);
+                    else if (_outgroup_node_number != UINT_MAX)
+                        tm.rerootAtNodeNumber(_outgroup_node_number);
 
                     // store set of splits
                     if (tree_to_plot)
                         {
-                        //std::cerr << "tree " << t << ", tree_to_plot = " << tree_to_plot << ": storing splits in _plotted" << std::endl;
                         _plotted.clear();
                         tm.storeSplits(_plotted);
+                        _tree_to_plot = tree_index;
+                        outf << "\n\nnewick = " << newick << "\n" << std::endl;
                         break;  // assume first tree is the one to plot
                         }
                     else
                         {
-                        //std::cerr << "tree " << t << ", tree_to_plot = " << tree_to_plot << ": storing splits in _treeIDs" << std::endl;
+                        //outf << "tree " << t << ", tree_to_plot = " << tree_to_plot << ": storing splits in _treeIDs" << std::endl;
 
                         splitset.clear();
                         tm.storeSplits(splitset);
@@ -211,21 +262,25 @@ inline void TreeSummary::readTreefile(const std::string filename, unsigned skip,
     nexusReader.DeleteBlocksFromFactories();
     }
     
-inline void TreeSummary::showSummary(unsigned tree_to_plot) const
+inline void TreeSummary::showSummary(std::ostream & outf) const
     {
     unsigned num_input_trees = (unsigned)_newicks.size() - 1;
 
     // Produce some output to show that it works
-    std::cout << boost::str(boost::format("\nRead %d trees from file") % _newicks.size()) << std::endl;
-    std::cout << boost::str(boost::format("\nTree to plot is number %d") % tree_to_plot) << std::endl;
-    std::cout << boost::str(boost::format("\nOutgroup has index %d") % _outgroup) << std::endl;
-    std::cout << boost::str(boost::format("\nNumber of input trees %d") % num_input_trees) << std::endl;
+    outf << boost::str(boost::format("A total of %d trees were read from files") % _newicks.size()) << std::endl;
+    outf << boost::str(boost::format("%6d tree to plot") % 1) << std::endl;
+    outf << boost::str(boost::format("%6d input trees") % num_input_trees) << std::endl;
     
     // Build tree to plot
     TreeManip tm;
-    tm.buildFromNewick(_newicks[tree_to_plot-1], false, false, _outgroup);
+    tm.buildFromNewick(_newicks[_tree_to_plot], false, false);
+    if (_outgroup_split)
+        tm.rerootAtSplit(_outgroup_split);
+    else if (_outgroup_node_number != UINT_MAX)
+        tm.rerootAtNodeNumber(_outgroup_node_number);
+    outf << "\nTree to plot: " << _newicks[_tree_to_plot] << "\n" << std::endl;
     Split::treeid_t splitset;
-    tm.storeSplits(splitset);
+    tm.storeSplits(splitset);   //TODO should be identical to _plotted
 
     // Show all unique topologies with a list of the trees that have that topology
 
@@ -244,9 +299,12 @@ inline void TreeSummary::showSummary(unsigned tree_to_plot) const
     for (auto & key_value_pair : _treeIDs)
         {
         topology++;
-        
+
         // key_value_pair.first is a so-called tree ID; a set of all splits in the tree
         const Split::treeid_t & splitset = key_value_pair.first;
+        unsigned topo_freq = (unsigned)key_value_pair.second.size();
+
+        std::cerr << "Processing topology " << topology << " (frequency = " << topo_freq << ")" << std::endl; //temporary!
 
         // clademap is a map in which keys are splits and values are frequencies
         for (auto & s : splitset)
@@ -255,12 +313,14 @@ inline void TreeSummary::showSummary(unsigned tree_to_plot) const
             if (lowb != clademap.end() && !(clademap.key_comp()(s, lowb->first)))
                 {
                 // this pattern has already been seen
-                lowb->second += 1;
+                std::cerr << "  split already seen in " << lowb->second << " trees: " << s.createPatternRepresentation() << std::endl; //temporary!
+                lowb->second += topo_freq;
                 }
             else
                 {
                 // this pattern has not yet been seen
-                clademap.insert(lowb, clademap_t::value_type(s, 1));
+                std::cerr << "  new split: " << s.createPatternRepresentation() << std::endl; //temporary!
+                clademap.insert(lowb, clademap_t::value_type(s, topo_freq));
                 }
             }
 
@@ -270,9 +330,9 @@ inline void TreeSummary::showSummary(unsigned tree_to_plot) const
         // sorted_trees vector holds tuples (n,t), where t is the index of a tree topology and
         // n is the number of trees in the file with topology t
         sorted_trees.push_back(std::pair<unsigned, unsigned>(ntrees,topology));
-        std::cout << "Topology " << topology << " seen in these " << ntrees << " trees:" << std::endl << "  ";
-        std::copy(key_value_pair.second.begin(), key_value_pair.second.end(), std::ostream_iterator<unsigned>(std::cout, " "));
-        std::cout << std::endl;
+        outf << "Topology " << topology << " seen in these " << ntrees << " trees:" << std::endl << "  ";
+        std::copy(key_value_pair.second.begin(), key_value_pair.second.end(), std::ostream_iterator<unsigned>(outf, " "));
+        outf << std::endl;
         }
         
     // Create sorted_clades vector of tuples (n,s), where n is the frequency of Split s
@@ -287,26 +347,26 @@ inline void TreeSummary::showSummary(unsigned tree_to_plot) const
     // Show tree topologies sorted from most to least frequent (note: sorted_trees does not include tree number tree_to_plot)
     std::sort(sorted_trees.begin(), sorted_trees.end());
     //unsigned npairs = (unsigned)sorted_trees.size();
-    std::cout << "\nTopologies sorted by sample frequency:" << std::endl;
-    std::cout << boost::str(boost::format("%20s %20s") % "topology" % "frequency") << std::endl;
+    outf << "\nTopologies sorted by sample frequency:" << std::endl;
+    outf << boost::str(boost::format("%20s %20s") % "topology" % "frequency") << std::endl;
     for (auto & ntrees_topol_pair : boost::adaptors::reverse(sorted_trees))
         {
         unsigned n = ntrees_topol_pair.first;
         unsigned t = ntrees_topol_pair.second;
-        std::cout << boost::str(boost::format("%20d %20d") % t % n) << std::endl;
+        outf << boost::str(boost::format("%20d %20d") % t % n) << std::endl;
         }
 
     // Show key to taxa in split representations
-    std::cout << "\nTaxon names and the position of each in split representations below:" << std::endl;
+    outf << "\nTaxon names and the position of each in split representations below:" << std::endl;
     unsigned taxon_number = 0;
     for (auto & s : _taxon_names)
         {
-        std::cout << boost::str(boost::format("%12d %s") % (++taxon_number) % s) << std::endl;
+        outf << boost::str(boost::format("%12d %s") % (++taxon_number) % s) << std::endl;
         }
         
     // Show support for clades in the tree_to_plot
-    std::cout << boost::str(boost::format("\nGSF and IC for the %d splits in tree number %d") % _plotted.size() % tree_to_plot) << std::endl;
-    std::cout << boost::str(boost::format("%20s %s") % "support" % "split") << std::endl;
+    outf << boost::str(boost::format("\nGSF and IC for the %d splits in tree number %d") % _plotted.size() % _tree_to_plot) << std::endl;
+    outf << boost::str(boost::format("%20s %s") % "support" % "split") << std::endl;
     for (auto & s : _plotted)
         {
         int freq_s = -1;
@@ -331,10 +391,10 @@ inline void TreeSummary::showSummary(unsigned tree_to_plot) const
         //   log2(a) = log(a)/log(2)
         //
         // Proof:
-        //   log2(a) = log(a)/log(2)
-        //   log2(a) log(2) = log(a)
-        //   log2(a) log(2) = log(2^{log2(a)}}) = log(a)
-        //   log(a) = log(a) QED
+        //   a = 2^{log2(a)}               by definition of logarithm base 2
+        //   log(a) = log{ 2^{log2(a)} }   take natural log of both sides
+        //   log(a) = log2(a) log(2)       because log(a^b) = b log(a)
+        //   log(a)/log(2) = log2(a)       divide both sides by log(2)
             
         if (freq_s > 0)
             {
@@ -352,15 +412,21 @@ inline void TreeSummary::showSummary(unsigned tree_to_plot) const
                 ic = 1.0 + x1*logx1 + x2*logx2;
                 if (freq_alt > freq_s)
                     ic *= -1.0;
-                std::cout << boost::str(boost::format("\n%20.3f %s") % focal_prop    % s.createPatternRepresentation()) << std::endl;
+                outf << boost::str(boost::format("\n%20.3f %s") % focal_prop    % s.createPatternRepresentation()) << std::endl;
                 double conflicting_prop = 1.0*freq_alt/num_input_trees;
-                std::cout << boost::str(boost::format("%20.3f %s") % conflicting_prop % split_alt.createPatternRepresentation()) << std::endl;
-                std::cout << boost::str(boost::format("%20.3f IC") % ic) << std::endl;
+                outf << boost::str(boost::format("%20.3f %s") % conflicting_prop % split_alt.createPatternRepresentation()) << std::endl;
+                outf << boost::str(boost::format("%20.3f IC") % ic) << std::endl;
                 }
 
             Node * nd = tm.findNodeWithSplit(s);
+            if (!nd) {
+                std::cerr << "oops" << std::endl;
+                nd = tm.findNodeWithSplit(s);
+                }
             assert(nd);
             nd->setSplitInfo(boost::str(boost::format("[%.5f,%.5f]") % focal_prop % ic));
+            
+            std::cerr << "setting split info for node " << nd->getNumber() << ": focal_prop = " << focal_prop << ", IC = " << ic << ", split_info = " << nd->getSplitInfo() << std::endl; //temporary!
 
             //clademap_t::iterator lowb = clademap.lower_bound(s);
             //if (lowb != clademap.end())
@@ -368,23 +434,23 @@ inline void TreeSummary::showSummary(unsigned tree_to_plot) const
             //    unsigned n = lowb->second;
             //    double pct = 100.0*n/num_input_trees;
             //    double ic = calcIC(s, );
-            //    std::cout << boost::str(boost::format("%20.1f %s") % pct % s.createPatternRepresentation()) << std::endl;
+            //    outf << boost::str(boost::format("%20.1f %s") % pct % s.createPatternRepresentation()) << std::endl;
             //    }
             // else
             //     {
-            //     std::cout << boost::str(boost::format("%20s %s") % "null" % s.createPatternRepresentation()) << std::endl;
+            //     outf << boost::str(boost::format("%20s %s") % "null" % s.createPatternRepresentation()) << std::endl;
             //     }
             }
         else
             {
             // split found in tree to be plotted was NOT found in sorted_clades
-            std::cout << boost::str(boost::format("\n%20s %s") % "null" % s.createPatternRepresentation()) << std::endl;
+            outf << boost::str(boost::format("\n%20s %s") % "null" % s.createPatternRepresentation()) << std::endl;
             }
         }
         
-    std::ofstream outf("treedata.js", std::ios::out);
-    outf << "var newick = \"" << tm.makeNewickNames(5, _taxon_names) << "\";" << std::endl;
-    outf.close();
+    std::ofstream jsfile("treedata.js", std::ios::out);
+    jsfile << "var newick = \"" << tm.makeNewickNames(5, _taxon_names) << "\";" << std::endl;
+    jsfile.close();
     }
 
 }
