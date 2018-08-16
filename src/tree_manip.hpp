@@ -692,7 +692,7 @@ inline void TreeManip::rerootAtEdge(Node * edge_owner)
         }
     _tree->_is_rooted = true;
     refreshPreorder();
-    debugPreorderNumbers();
+    //debugPreorderNumbers();
     refreshLevelorder();
     rerootAtNode(fake_leaf);
     }
@@ -752,7 +752,7 @@ inline void TreeManip::rerootAtNode(Node * prospective_root)
 // This version doesn't work and should be abandoned
 inline void TreeManip::rerootAtNode(Node * prospective_root)
     {
-    debugNodesMemoryAddresses();
+    //debugNodesMemoryAddresses();
     std::vector<Node *> former_children;
     Node *      prev_node    = 0;
     Node *      next_node    = prospective_root;
@@ -803,14 +803,14 @@ inline void TreeManip::rerootAtNode(Node * prospective_root)
 
     _tree->_root = prospective_root;
     refreshPreorder();
-    debugPreorderNumbers();
+    //debugPreorderNumbers();
     refreshLevelorder();
     }
 #endif
 
 inline void TreeManip::rerootAtNode(Node * prospective_root)
     {
-    debugNodesMemoryAddresses();
+    //debugNodesMemoryAddresses();
     Node * a = prospective_root;
     Node * b = prospective_root->_parent;
     Node * c = 0;
@@ -877,7 +877,7 @@ inline void TreeManip::rerootAtNode(Node * prospective_root)
         }
     _tree->_root = prospective_root;
     refreshPreorder();
-    debugPreorderNumbers();
+    //debugPreorderNumbers();
     refreshLevelorder();
     }
 

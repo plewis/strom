@@ -307,7 +307,7 @@ inline void TreeSummary::showSummary(std::ostream & outf) const
         const Split::treeid_t & splitset = key_value_pair.first;
         unsigned topo_freq = (unsigned)key_value_pair.second.size();
 
-        std::cerr << "Processing topology " << topology << " (frequency = " << topo_freq << ")" << std::endl; //temporary!
+        //std::cerr << "Processing topology " << topology << " (frequency = " << topo_freq << ")" << std::endl; //temporary!
 
         // clademap is a map in which keys are splits and values are frequencies
         for (auto & s : splitset)
@@ -316,13 +316,13 @@ inline void TreeSummary::showSummary(std::ostream & outf) const
             if (lowb != clademap.end() && !(clademap.key_comp()(s, lowb->first)))
                 {
                 // this pattern has already been seen
-                std::cerr << "  split already seen in " << lowb->second << " trees: " << s.createPatternRepresentation() << std::endl; //temporary!
+                //std::cerr << "  split already seen in " << lowb->second << " trees: " << s.createPatternRepresentation() << std::endl; //temporary!
                 lowb->second += topo_freq;
                 }
             else
                 {
                 // this pattern has not yet been seen
-                std::cerr << "  new split: " << s.createPatternRepresentation() << std::endl; //temporary!
+                //std::cerr << "  new split: " << s.createPatternRepresentation() << std::endl; //temporary!
                 clademap.insert(lowb, clademap_t::value_type(s, topo_freq));
                 }
             }
@@ -429,7 +429,7 @@ inline void TreeSummary::showSummary(std::ostream & outf) const
             assert(nd);
             nd->setSplitInfo(boost::str(boost::format("[%.5f,%.5f]") % focal_prop % ic));
             
-            std::cerr << "setting split info for node " << nd->getNumber() << ": focal_prop = " << focal_prop << ", IC = " << ic << ", split_info = " << nd->getSplitInfo() << std::endl; //temporary!
+            //std::cerr << "setting split info for node " << nd->getNumber() << ": focal_prop = " << focal_prop << ", IC = " << ic << ", split_info = " << nd->getSplitInfo() << std::endl; //temporary!
 
             //clademap_t::iterator lowb = clademap.lower_bound(s);
             //if (lowb != clademap.end())
