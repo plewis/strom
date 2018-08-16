@@ -45,6 +45,8 @@ namespace strom
             void                        rerootAtEdge(Node * edge_owner);
             void                        rerootAtNode(Node * prospective_root);
             void                        refreshPreorder();
+            void                        debugPreorderNumbers() const;
+            void                        debugNodesMemoryAddresses() const;
             void                        refreshLevelorder();
             void                        rerootHelper(Node * m, Node * t);
             void                        extractNodeNumberFromName(Node * nd, std::set<unsigned> & used);
@@ -369,6 +371,38 @@ inline void TreeManip::stripOutNexusComments(std::string & newick)
     newick = std::regex_replace(newick, commentexpr, std::string(""));
     }
 
+inline void TreeManip::debugPreorderNumbers() const
+    {
+    std::cerr << "\nPreorder sequence:" << std::endl;
+    std::string lchildstr = (_tree->_root->_left_child ? std::to_string(_tree->_root->_left_child->_number) : " ");
+    std::string rsibstr   = (_tree->_root->_right_sib  ? std::to_string(_tree->_root->_right_sib->_number)  : " ");
+    std::string parstr    = (_tree->_root->_parent     ? std::to_string(_tree->_root->_parent->_number)     : " ");
+    std::cerr << boost::str(boost::format("%d (lchild = %2s | rsib = %2s | par = %2s) <-- root node\n") % _tree->_root->_number % lchildstr % rsibstr % parstr);
+    for (auto nd : _tree->_preorder)
+        {
+        lchildstr = (nd->_left_child ? std::to_string(nd->_left_child->_number) : " ");
+        rsibstr   = (nd->_right_sib  ? std::to_string(nd->_right_sib->_number)  : " ");
+        parstr    = (nd->_parent     ? std::to_string(nd->_parent->_number)     : " ");
+        std::cerr << boost::str(boost::format("%d (lchild = %2s | rsib = %2s | par = %2s)\n") % nd->_number % lchildstr % rsibstr % parstr);
+        }
+    std::cerr << std::endl;
+    }
+    
+inline void TreeManip::debugNodesMemoryAddresses() const
+    {
+    std::string lchildstr, rsibstr, parstr, rootstr;
+    std::cerr << boost::str(boost::format("%12s %6s | %12s | %12s | %12s\n") % "node" % "number" % "lchild" % "rsib" % "parent");
+    for (auto & nd : _tree->_nodes)
+        {
+        rootstr = (&nd == _tree->_root ? "<-- root node" : "");
+        lchildstr = (nd._left_child ? boost::str(boost::format("%x") % nd._left_child) : "NULL");
+        rsibstr   = (nd._right_sib  ? boost::str(boost::format("%x") % nd._right_sib)  : "NULL");
+        parstr    = (nd._parent     ? boost::str(boost::format("%x") % nd._parent)     : "NULL");
+        std::cerr << boost::str(boost::format("%12x %6d | %12s | %12s | %12s%s\n") % &nd % nd._number % lchildstr % rsibstr % parstr % rootstr);
+        }
+    std::cerr << std::endl;
+    }
+    
 inline void TreeManip::refreshPreorder()
     {
     // Create vector of node pointers in preorder sequence
@@ -625,6 +659,7 @@ inline void TreeManip::rerootAtEdge(Node * edge_owner)
         fake_leaf_parent->_parent         = edge_owner_parent;
         fake_leaf_parent->_number         = num_nodes - 1;
         fake_leaf_parent->_edge_length    = prev_edge_length/2.0;
+        fake_leaf_parent->setSplitInfo(edge_owner->getSplitInfo());
         
         //edge_owner->_left_child           = unmodified;
         edge_owner->_right_sib            = 0;
@@ -657,6 +692,7 @@ inline void TreeManip::rerootAtEdge(Node * edge_owner)
         }
     _tree->_is_rooted = true;
     refreshPreorder();
+    debugPreorderNumbers();
     refreshLevelorder();
     rerootAtNode(fake_leaf);
     }
@@ -685,6 +721,7 @@ inline void TreeManip::rerootAtNodeNumber(int node_number)
         }
     }
 
+#if 0
 inline void TreeManip::rerootAtNode(Node * prospective_root)
     {
     Node * nd = prospective_root;
@@ -708,6 +745,64 @@ inline void TreeManip::rerootAtNode(Node * prospective_root)
     refreshPreorder();
     refreshLevelorder();
     }
+#else
+inline void TreeManip::rerootAtNode(Node * prospective_root)
+    {
+    debugNodesMemoryAddresses();
+    std::vector<Node *> former_children;
+    Node *      prev_node    = 0;
+    Node *      next_node    = prospective_root;
+    std::string tmp_info     = "";
+    std::string prev_info    = "";
+    double      tmp_edgelen  = 0.0;
+    double      prev_edgelen = 0.0;
+
+    Node * nd = next_node;
+    while (next_node)
+        {
+        former_children.clear();
+        for (Node * tmp = nd->_left_child; tmp != NULL; tmp = tmp->_right_sib)
+            {
+            former_children.push_back(tmp);
+            }
+        next_node       = nd->_parent;
+        nd->_left_child = next_node;
+        nd->_parent     = prev_node;
+        
+        // Swap nd's split info with its new parent's split info
+        tmp_info = nd->getSplitInfo();
+        nd->setSplitInfo(prev_info);
+        prev_info = tmp_info;
+        
+        // Swap nd's edge length with its new parent's edge length
+        tmp_edgelen = nd->getEdgeLength();
+        nd->setEdgeLength(prev_edgelen);
+        prev_edgelen = tmp_edgelen;
+        
+        // Keep all of nd's former children except prev_node (which is now nd's parent)
+        Node * left_sib = nd->_left_child;
+        for (auto child : former_children)
+            {
+            child->_right_sib = 0;
+            if (child != prev_node)
+                {
+                if (left_sib)
+                    left_sib->_right_sib = child;
+                else
+                    nd->_left_child = child;
+                left_sib = child;
+                }
+            }
+        prev_node = nd;
+        nd = next_node;
+        }
+
+    _tree->_root = prospective_root;
+    refreshPreorder();
+    debugPreorderNumbers();
+    refreshLevelorder();
+    }
+#endif
 
 inline void TreeManip::rerootHelper(Node * m, Node * t)
     {
