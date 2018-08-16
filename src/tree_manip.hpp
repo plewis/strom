@@ -722,6 +722,7 @@ inline void TreeManip::rerootAtNodeNumber(int node_number)
     }
 
 #if 0
+// This version works but seems overly complicated
 inline void TreeManip::rerootAtNode(Node * prospective_root)
     {
     Node * nd = prospective_root;
@@ -745,7 +746,10 @@ inline void TreeManip::rerootAtNode(Node * prospective_root)
     refreshPreorder();
     refreshLevelorder();
     }
-#else
+#endif
+
+#if 0
+// This version doesn't work and should be abandoned
 inline void TreeManip::rerootAtNode(Node * prospective_root)
     {
     debugNodesMemoryAddresses();
@@ -803,6 +807,79 @@ inline void TreeManip::rerootAtNode(Node * prospective_root)
     refreshLevelorder();
     }
 #endif
+
+inline void TreeManip::rerootAtNode(Node * prospective_root)
+    {
+    debugNodesMemoryAddresses();
+    Node * a = prospective_root;
+    Node * b = prospective_root->_parent;
+    Node * c = 0;
+    Node * d = 0;
+    Node * p = 0;
+    a->_parent = 0;
+    std::string tmp_info = "";
+    std::string prev_info = "";
+    double tmp_edgelen  = 0.0;
+    double prev_edgelen = 0.0;
+    
+    while (b)
+        {
+        // Prune node "a" from the tree
+        if (a == b->_left_child)
+            {
+            if (a->_right_sib)
+                {
+                b->_left_child = a->_right_sib;
+                a->_right_sib = 0;
+                }
+            else
+                {
+                b->_left_child = 0;
+                }
+            }
+        else
+            {
+            c = b->_left_child;
+            while (c->_right_sib != a)
+                c = c->_right_sib;
+            d = a->_right_sib;
+            c->_right_sib = d;
+            }
+            
+        // Make b right-most child of a, but don't unhook b from its parent just yet
+        if (a->_left_child)
+            {
+            c = a->_left_child;
+            while (c->_right_sib)
+                c = c->_right_sib;
+            c->_right_sib = b;
+            }
+        else
+            {
+            a->_left_child = b;
+            }
+        
+        // Ratchet
+        p = a;
+        a = b;
+        b = b->_parent;
+        a->_parent = p;
+        
+        // Swap nd's split info with its new parent's split info
+        tmp_info = a->getSplitInfo();
+        a->setSplitInfo(prev_info);
+        prev_info = tmp_info;
+        
+        // Swap nd's edge length with its new parent's edge length
+        tmp_edgelen = a->getEdgeLength();
+        a->setEdgeLength(prev_edgelen);
+        prev_edgelen = tmp_edgelen;
+        }
+    _tree->_root = prospective_root;
+    refreshPreorder();
+    debugPreorderNumbers();
+    refreshLevelorder();
+    }
 
 inline void TreeManip::rerootHelper(Node * m, Node * t)
     {
