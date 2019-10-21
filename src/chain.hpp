@@ -161,7 +161,7 @@ inline void Chain::setLambdas(std::vector<double> & v)
     _statefreq_updater->setLambda(v[1]);
     _exchangeability_updater->setLambda(v[2]);
     _tree_updater->setLambda(v[3]);
-    _tree_length_updater->setLambda(v[3]);
+    _tree_length_updater->setLambda(v[4]);
     }
 
 inline void Chain::startTuning()
